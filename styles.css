@@ -388,6 +388,152 @@ textarea {
   }
 }
 
+@media (min-width: 621px) and (max-width: 1100px) {
+  body {
+    font-size: 17px;
+  }
+
+  .app-shell {
+    width: min(100% - 28px, 900px);
+    padding: 22px 0 30px;
+  }
+
+  .topbar {
+    margin-bottom: 16px;
+  }
+
+  .eyebrow {
+    font-size: 0.86rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  .copy-state {
+    min-width: 112px;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .input-panel,
+  .output-panel {
+    padding: 24px;
+  }
+
+  .output-panel {
+    position: static;
+    gap: 18px;
+  }
+
+  fieldset + fieldset {
+    margin-top: 24px;
+    padding-top: 22px;
+  }
+
+  legend {
+    margin-bottom: 16px;
+    font-size: 1.18rem;
+  }
+
+  .form-grid {
+    gap: 16px;
+  }
+
+  label {
+    gap: 9px;
+  }
+
+  label > span,
+  .template-wrap > span {
+    font-size: 0.98rem;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 1.06rem;
+  }
+
+  input,
+  select {
+    height: 56px;
+    padding: 0 16px;
+  }
+
+  .money-field,
+  .rate-field {
+    min-height: 56px;
+  }
+
+  .money-field span,
+  .rate-field span {
+    height: 56px;
+    padding: 0 16px;
+    font-size: 1rem;
+  }
+
+  .segmented {
+    gap: 10px;
+  }
+
+  .segmented.three {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .segmented label,
+  .segmented span {
+    min-height: 58px;
+  }
+
+  .segmented span {
+    padding: 10px 12px;
+    font-size: 1rem;
+  }
+
+  .summary-grid {
+    gap: 12px;
+  }
+
+  .summary-grid div {
+    min-height: 92px;
+    padding: 16px;
+  }
+
+  .summary-grid span {
+    margin-bottom: 10px;
+    font-size: 0.88rem;
+  }
+
+  .summary-grid strong {
+    font-size: 1.55rem;
+  }
+
+  textarea {
+    min-height: 360px;
+    padding: 16px;
+    line-height: 1.55;
+  }
+
+  .primary-action,
+  .secondary-action {
+    min-height: 58px;
+    font-size: 1.02rem;
+  }
+
+  .primary-action span {
+    min-width: 54px;
+    min-height: 32px;
+    font-size: 0.9rem;
+  }
+}
+
 @media (max-width: 620px) {
   .app-shell {
     width: min(100% - 20px, 1180px);
