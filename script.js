@@ -41,7 +41,6 @@ const PROTON_MODELS = {
 const DEFAULT_STATE = {
   model: "Proton S70",
   variant: "Flagship X",
-  otrFee: 400,
   interestRate: 2.3,
   insuranceOption: "with",
   ncd: 0,
@@ -65,7 +64,6 @@ const modelSelect = document.querySelector("#modelSelect");
 const variantSelect = document.querySelector("#variantSelect");
 const bodyPriceInput = document.querySelector("#bodyPrice");
 const rebateInput = document.querySelector("#rebate");
-const otrFeeInput = document.querySelector("#otrFee");
 const interestRateInput = document.querySelector("#interestRate");
 const ncdSelect = document.querySelector("#ncd");
 const customDepositInput = document.querySelector("#customDeposit");
@@ -231,12 +229,11 @@ function buildTemplate(values) {
 function calculateValues() {
   const bodyPrice = Math.max(readNumber(bodyPriceInput), 0);
   const rebate = Math.max(readNumber(rebateInput), 0);
-  const otrFee = Math.max(readNumber(otrFeeInput), 0);
   const interestRate = Math.max(readNumber(interestRateInput), 0);
   const insuranceOption = getCheckedValue("insuranceOption");
   const ncd = Math.max(Number(ncdSelect.value) || 0, 0);
   const loanPeriod = Number(loanPeriodSelect.value) || DEFAULT_STATE.loanPeriod;
-  const priceAfterRebate = Math.max(bodyPrice + otrFee - rebate, 0);
+  const priceAfterRebate = Math.max(bodyPrice - rebate, 0);
   const insurance =
     insuranceOption === "with"
       ? priceAfterRebate * INSURANCE_RATE * Math.max(1 - ncd / 100, 0)
@@ -252,7 +249,6 @@ function calculateValues() {
     variant: variantSelect.value,
     bodyPrice,
     rebate,
-    otrFee,
     interestRate,
     insuranceOption,
     ncd,
@@ -323,7 +319,6 @@ async function copyTemplate() {
 function resetDefaults() {
   modelSelect.value = DEFAULT_STATE.model;
   populateVariants(DEFAULT_STATE.variant);
-  otrFeeInput.value = DEFAULT_STATE.otrFee;
   interestRateInput.value = DEFAULT_STATE.interestRate;
   ncdSelect.value = String(DEFAULT_STATE.ncd);
   customDepositInput.value = DEFAULT_STATE.customDeposit;
