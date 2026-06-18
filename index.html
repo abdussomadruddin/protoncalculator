@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proton Loan Calculator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">PROTON</p>
+          <h1>Loan Calculator</h1>
+        </div>
+        <div class="copy-state" id="copyState" aria-live="polite">Ready</div>
+      </header>
+
+      <section class="workspace" aria-label="Proton loan calculator">
+        <form class="panel input-panel" id="loanForm">
+          <fieldset>
+            <legend>Car Details</legend>
+
+            <div class="form-grid">
+              <label>
+                <span>Model</span>
+                <select id="modelSelect" name="model"></select>
+              </label>
+
+              <label>
+                <span>Variant</span>
+                <select id="variantSelect" name="variant"></select>
+              </label>
+
+              <label>
+                <span>Car Body Price</span>
+                <div class="money-field">
+                  <span>RM</span>
+                  <input id="bodyPrice" name="bodyPrice" type="number" min="0" step="100" inputmode="decimal" />
+                </div>
+              </label>
+
+              <label>
+                <span>Rebate Bulan Ni</span>
+                <div class="money-field">
+                  <span>RM</span>
+                  <input id="rebate" name="rebate" type="number" min="0" step="100" value="0" inputmode="decimal" />
+                </div>
+              </label>
+
+              <label>
+                <span>OTR Fee</span>
+                <div class="money-field">
+                  <span>RM</span>
+                  <input id="otrFee" name="otrFee" type="number" min="0" step="50" value="400" inputmode="decimal" />
+                </div>
+              </label>
+
+              <label>
+                <span>Interest Rate</span>
+                <div class="rate-field">
+                  <input id="interestRate" name="interestRate" type="number" min="0" max="20" step="0.01" value="2.3" inputmode="decimal" />
+                  <span>%</span>
+                </div>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Insurance</legend>
+
+            <div class="segmented" role="radiogroup" aria-label="Insurance option">
+              <label>
+                <input type="radio" name="insuranceOption" value="with" checked />
+                <span>With insurance</span>
+              </label>
+              <label>
+                <input type="radio" name="insuranceOption" value="exclude" />
+                <span>Exclude insurance</span>
+              </label>
+            </div>
+
+            <div class="form-grid single">
+              <label>
+                <span>Insurance NCD</span>
+                <select id="ncd" name="ncd">
+                  <option value="0">0%</option>
+                  <option value="25">25%</option>
+                  <option value="30">30%</option>
+                  <option value="38.33">38.33%</option>
+                  <option value="45">45%</option>
+                  <option value="55">55%</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Deposit & Loan</legend>
+
+            <div class="segmented three" role="radiogroup" aria-label="Deposit option">
+              <label>
+                <input type="radio" name="depositOption" value="full" checked />
+                <span>Full loan</span>
+              </label>
+              <label>
+                <input type="radio" name="depositOption" value="ten" />
+                <span>10% deposit</span>
+              </label>
+              <label>
+                <input type="radio" name="depositOption" value="custom" />
+                <span>Custom</span>
+              </label>
+            </div>
+
+            <div class="form-grid">
+              <label id="customDepositWrap">
+                <span>Custom Deposit</span>
+                <div class="money-field">
+                  <span>RM</span>
+                  <input id="customDeposit" name="customDeposit" type="number" min="0" step="100" value="0" inputmode="decimal" />
+                </div>
+              </label>
+
+              <label>
+                <span>Loan Period</span>
+                <select id="loanPeriod" name="loanPeriod">
+                  <option value="1">1 year</option>
+                  <option value="2">2 years</option>
+                  <option value="3">3 years</option>
+                  <option value="4">4 years</option>
+                  <option value="5">5 years</option>
+                  <option value="6">6 years</option>
+                  <option value="7">7 years</option>
+                  <option value="8">8 years</option>
+                  <option value="9" selected>9 years</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+        </form>
+
+        <aside class="panel output-panel">
+          <div class="summary-grid" aria-label="Loan summary">
+            <div>
+              <span>OTR</span>
+              <strong id="summaryOtr">RM 0.00</strong>
+            </div>
+            <div>
+              <span>Loan</span>
+              <strong id="summaryLoan">RM 0.00</strong>
+            </div>
+            <div>
+              <span>Deposit</span>
+              <strong id="summaryDeposit">RM 0.00</strong>
+            </div>
+            <div>
+              <span>7 Years</span>
+              <strong id="summarySeven">RM 0.00</strong>
+            </div>
+            <div>
+              <span id="summaryPeriodLabel">9 Years</span>
+              <strong id="summarySelected">RM 0.00</strong>
+            </div>
+          </div>
+
+          <label class="template-wrap">
+            <span>WhatsApp Template</span>
+            <textarea id="templateOutput" readonly spellcheck="false"></textarea>
+          </label>
+
+          <div class="actions">
+            <button class="primary-action" id="copyButton" type="button">
+              <span aria-hidden="true">Copy</span>
+              <strong>WhatsApp Template</strong>
+            </button>
+            <button class="secondary-action" id="resetButton" type="button">Reset</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
