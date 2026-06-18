@@ -236,7 +236,7 @@ function calculateValues() {
   const priceAfterRebate = Math.max(bodyPrice - rebate, 0);
   const insurance =
     insuranceOption === "with"
-      ? priceAfterRebate * INSURANCE_RATE * Math.max(1 - ncd / 100, 0)
+      ? bodyPrice * INSURANCE_RATE * Math.max(1 - ncd / 100, 0)
       : 0;
   const otrTotal = priceAfterRebate + insurance;
   const depositAmount = getDepositAmount(otrTotal);
