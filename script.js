@@ -1,9 +1,9 @@
 const PROTON_MODELS = {
   "Proton S70": [
-    { name: "Executive", price: 68800 },
+    { name: "Executive", price: 73800 },
     { name: "Premium", price: 79800 },
     { name: "Flagship", price: 89800 },
-    { name: "Flagship X", price: 94900 },
+    { name: "Flagship X", price: 94800 },
   ],
   "Proton X50": [
     { name: "Executive", price: 89800 },
@@ -11,30 +11,24 @@ const PROTON_MODELS = {
     { name: "Flagship", price: 113300 },
   ],
   "Proton X70": [
-    { name: "Standard", price: 99800 },
-    { name: "Executive", price: 110800 },
-    { name: "Premium", price: 123800 },
+    { name: "Executive", price: 106800 },
+    { name: "Premium", price: 119800 },
   ],
   "Proton X90": [
-    { name: "Standard", price: 99800 },
-    { name: "Executive", price: 113800 },
-    { name: "Premium", price: 123800 },
-    { name: "Flagship", price: 146800 },
+    { name: "Lite", price: 106800 },
+    { name: "Prime", price: 116800 },
+    { name: "Prime X", price: 122800 },
   ],
   "Proton All New Saga": [
     { name: "Standard", price: 38990 },
-    { name: "Executive", price: 43990 },
-    { name: "Premium", price: 48990 },
+    { name: "Executive", price: 44990 },
+    { name: "Premium", price: 49990 },
   ],
   "Proton Persona": [
     { name: "Standard", price: 47800 },
-    { name: "Executive", price: 53300 },
-    { name: "Premium", price: 58300 },
   ],
   "Proton Iriz": [
     { name: "Standard", price: 42800 },
-    { name: "Executive", price: 50300 },
-    { name: "Active", price: 57300 },
   ],
 };
 
