@@ -1,0 +1,22 @@
+{
+  "name": "Proton Loan Calculator",
+  "short_name": "Proton Loan",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f5f6f4",
+  "theme_color": "#128c4a",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -274,7 +274,7 @@ function render() {
   summarySelected.textContent = `${money(values.selectedMonthly)}/mo`;
 }
 
-function setStatus(message, type = "") {
+function setStatus(message, type = "", timeout = 2400) {
   copyState.textContent = message;
   copyState.classList.remove("success", "error");
 
@@ -283,10 +283,12 @@ function setStatus(message, type = "") {
   }
 
   window.clearTimeout(statusTimer);
-  statusTimer = window.setTimeout(() => {
-    copyState.textContent = "Ready";
-    copyState.classList.remove("success", "error");
-  }, 2400);
+  if (timeout > 0) {
+    statusTimer = window.setTimeout(() => {
+      copyState.textContent = "Ready";
+      copyState.classList.remove("success", "error");
+    }, timeout);
+  }
 }
 
 async function copyTemplate() {
