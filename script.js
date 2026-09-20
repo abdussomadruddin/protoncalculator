@@ -265,6 +265,11 @@ function render() {
 
   customDepositInput.disabled = !isCustomDeposit;
   customDepositWrap.classList.toggle("is-muted", !isCustomDeposit);
+  customDepositWrap.hidden = !isCustomDeposit;
+  ncdSelect.disabled = values.insuranceOption !== "with";
+  document.querySelector("#heroMonthly").textContent = money(values.selectedMonthly);
+  document.querySelector("#heroModel").textContent = `${values.model} ${values.variant}`;
+  document.querySelector("#estimateTerms").textContent = `${values.loanPeriod} years · ${percent(values.interestRate)} p.a.`;
   templateOutput.value = template;
   summaryOtr.textContent = money(values.otrTotal);
   summaryLoan.textContent = money(values.loanAfterDeposit);
@@ -306,6 +311,7 @@ async function copyTemplate() {
 
     setStatus("Copied", "success");
   } catch (error) {
+    document.querySelector(".template-details").open = true;
     templateOutput.focus();
     templateOutput.select();
     setStatus("Select & copy", "error");

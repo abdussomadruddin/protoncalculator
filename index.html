@@ -17,17 +17,23 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
+        <img class="app-logo" src="assets/icons/apple-touch-icon.png" alt="" width="48" height="48" />
         <div>
           <p class="eyebrow">PROTON</p>
           <h1>Loan Calculator</h1>
         </div>
-        <div class="copy-state" id="copyState" aria-live="polite">Ready</div>
+        <span class="header-tag">1Click</span>
       </header>
+
+      <section class="estimate-banner" aria-label="Monthly estimate">
+        <div><p class="estimate-label">Estimated monthly payment</p><div class="headline-payment"><strong id="heroMonthly">RM 0.00</strong><span>/ month</span></div><p id="heroModel" class="estimate-model"></p></div>
+        <a href="#loanSummary" class="estimate-link">View breakdown <span aria-hidden="true">↓</span></a>
+      </section>
 
       <section class="workspace" aria-label="Proton loan calculator">
         <form class="panel input-panel" id="loanForm">
           <fieldset>
-            <legend>Car Details</legend>
+            <legend><span class="section-number">01</span> Car details</legend>
 
             <div class="form-grid">
               <label>
@@ -67,7 +73,7 @@
           </fieldset>
 
           <fieldset>
-            <legend>Insurance</legend>
+            <legend><span class="section-number">02</span> Insurance</legend>
 
             <div class="segmented" role="radiogroup" aria-label="Insurance option">
               <label>
@@ -96,7 +102,7 @@
           </fieldset>
 
           <fieldset>
-            <legend>Deposit & Loan</legend>
+            <legend><span class="section-number">03</span> Deposit & loan</legend>
 
             <div class="segmented three" role="radiogroup" aria-label="Deposit option">
               <label>
@@ -140,7 +146,8 @@
           </fieldset>
         </form>
 
-        <aside class="panel output-panel">
+        <aside class="panel output-panel" id="loanSummary">
+          <div class="summary-heading"><h2>Your estimate</h2><span id="estimateTerms"></span></div>
           <div class="summary-grid" aria-label="Loan summary">
             <div>
               <span>OTR</span>
@@ -164,15 +171,19 @@
             </div>
           </div>
 
+          <details class="template-details">
+          <summary>WhatsApp template <span aria-hidden="true">+</span></summary>
           <label class="template-wrap">
             <span>WhatsApp Template</span>
             <textarea id="templateOutput" readonly spellcheck="false"></textarea>
           </label>
+          </details>
+          <p class="estimate-note">Anggaran sahaja. Tertakluk kepada kelulusan dan kadar bank.</p>
 
           <div class="actions">
+            <div class="copy-state" id="copyState" role="status" aria-live="polite">Ready</div>
             <button class="primary-action" id="copyButton" type="button">
-              <span aria-hidden="true">Copy</span>
-              <strong>WhatsApp Template</strong>
+              <strong>Copy WhatsApp</strong>
             </button>
             <button class="secondary-action" id="resetButton" type="button">Reset</button>
           </div>
