@@ -1,4 +1,8 @@
 const PROTON_MODELS = {
+  "NEW S70 1.5 i-GT": [
+    { name: "Lite", price: 59800 },
+    { name: "Prime", price: 62800 },
+  ],
   "Proton S70": [
     { name: "Executive", price: 73800 },
     { name: "Premium", price: 79800 },
@@ -49,6 +53,7 @@ const MODEL_REBATES = {
   "Proton All New Saga": 500,
   "Proton Persona": 2000,
   "Proton S70": 5000,
+  "NEW S70 1.5 i-GT": 3000,
   "Proton X70": 7000,
   "Proton X90": 7000,
 };
