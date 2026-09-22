@@ -37,8 +37,8 @@ const PROTON_MODELS = {
 };
 
 const DEFAULT_STATE = {
-  model: "Proton S70",
-  variant: "Flagship X",
+  model: "NEW S70 1.5 i-GT",
+  variant: "Lite",
   interestRate: 2.3,
   insuranceOption: "with",
   ncd: 0,
