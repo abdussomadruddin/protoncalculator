@@ -39,7 +39,7 @@ const PROTON_MODELS = {
 const DEFAULT_STATE = {
   model: "NEW S70 1.5 i-GT",
   variant: "Lite",
-  interestRate: 2.3,
+  interestRate: 2.35,
   insuranceOption: "with",
   ncd: 0,
   depositOption: "full",
