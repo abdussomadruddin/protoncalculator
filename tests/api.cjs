@@ -27,12 +27,22 @@ test('cross-origin writes and wrong admin email denied before upstream work', as
   assert.equal((await request('publish', { method: 'POST', origin: 'https://evil.example', body: {} })).code, 403);
   assert.equal((await request('login', { method: 'POST', body: { email: 'stranger@example.com' } })).code, 401);
 });
+test('all official production aliases accept writes but foreign and spoofed origins do not', async () => {
+  global.fetch = () => { throw new Error('Validation must precede backend request'); };
+  for (const origin of ['https://protoncalculator.vercel.app', 'https://carloanmalaysia.vercel.app', 'https://protoncalculator-abdussomadruddin-projects.vercel.app']) {
+    assert.equal((await request('login', { method: 'POST', origin, body: {} })).code, 401);
+  }
+  for (const origin of [undefined, 'null', 'http://carloanmalaysia.vercel.app', 'https://carloanmalaysia.vercel.app.evil.test', 'https://evil.test']) {
+    assert.equal((await request('login', { method: 'POST', origin: origin ?? 'null', body: {} })).code, 403);
+  }
+});
 test('safe announcement URLs and push provider endpoints', () => {
   for (const link of ['javascript:alert(1)', 'http://example.com', 'https://user:password@example.com', 'data:text/html,hello']) assert.throws(() => handler.httpsLink(link));
   assert.equal(handler.httpsLink('https://example.com/promo'), 'https://example.com/promo');
   const keys = { p256dh: Buffer.alloc(65, 1).toString('base64url'), auth: Buffer.alloc(16, 2).toString('base64url') };
   for (const endpoint of ['https://localhost/admin', 'https://169.254.169.254/latest', 'http://fcm.googleapis.com/a', 'https://fcm.googleapis.com.evil.com/a', 'https://fcm.googleapis.com:8080/a']) assert.throws(() => handler.validateSubscription({ endpoint, keys }));
-  for (const endpoint of ['https://fcm.googleapis.com/fcm/send/a', 'https://web.push.apple.com/Q/a', 'https://updates.push.services.mozilla.com/wpush/v2/a']) assert.equal(handler.validateSubscription({ endpoint, keys }).endpoint, endpoint);
+  for (const endpoint of ['https://fcm.googleapis.com/fcm/send/a', 'https://web.push.apple.com/Q/a', 'https://updates.push.services.mozilla.com/wpush/v2/a', 'https://wns2-db5p.notify.windows.com/w/?token=test']) assert.equal(handler.validateSubscription({ endpoint, keys }).endpoint, endpoint);
+  for (const endpoint of ['https://notify.windows.com.evil.test/a', 'https://evilnotify.windows.com/a']) assert.throws(() => handler.validateSubscription({ endpoint, keys }));
   assert.throws(() => handler.validateSubscription({ endpoint: 'https://fcm.googleapis.com/a', keys: { p256dh: 'short', auth: 'short' } }));
 });
 test('non-admin and unconfirmed accounts cannot use admin API', async () => {

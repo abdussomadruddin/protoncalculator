@@ -21,7 +21,7 @@ function validateSubscription(subscription) {
   try { endpoint = new URL(subscription.endpoint); } catch { fail(400, 'Endpoint tidak sah.'); }
   // Guest endpoints must never turn the push sender into an arbitrary HTTP client.
   const host = endpoint.hostname;
-  const approved = host === 'fcm.googleapis.com' || host === 'updates.push.services.mozilla.com' || host === 'web.push.apple.com' || host.endsWith('.push.apple.com');
+  const approved = host === 'fcm.googleapis.com' || host === 'updates.push.services.mozilla.com' || host === 'web.push.apple.com' || host.endsWith('.push.apple.com') || host === 'notify.windows.com' || host.endsWith('.notify.windows.com');
   if (endpoint.protocol !== 'https:' || endpoint.port || endpoint.username || endpoint.password || !approved || subscription.endpoint.length > 2048) fail(400, 'Provider notification tidak disokong.');
   const keys = subscription.keys;
   const validKey = (value, bytes) => typeof value === 'string' && /^[A-Za-z0-9_-]+={0,2}$/.test(value) && Buffer.from(value, 'base64url').length === bytes;
@@ -44,8 +44,15 @@ async function supabase(path, { method = 'GET', body, authToken, service = true,
   return { data, headers: response.headers };
 }
 function sameOrigin(req) {
-  const origin = process.env.APP_ORIGIN || 'https://protoncalculator.vercel.app';
-  if (req.headers.origin !== origin) fail(403, 'Permintaan tidak dibenarkan.');
+  // Explicit production aliases only; never trust arbitrary Host or forwarded headers.
+  const origins = new Set([
+    'https://protoncalculator.vercel.app',
+    'https://carloanmalaysia.vercel.app',
+    'https://protoncalculator-abdussomadruddin-projects.vercel.app',
+    process.env.APP_ORIGIN,
+    ...(process.env.APP_ORIGINS || '').split(',').map(origin => origin.trim()),
+  ].filter(Boolean));
+  if (!origins.has(req.headers.origin)) fail(403, 'Domain ini belum dibenarkan. Buka Car Loan MY di domain rasmi dan cuba semula.');
 }
 function adminToken(req) {
   const cookie = String(req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(cookieName + '='));

@@ -90,7 +90,7 @@
       'Chrome / Edge: pilih Install Car Loan MY atau Install page as app. Safari: pilih Add to Dock.',
       'Tekan Install / Add, kemudian buka Car Loan MY melalui senarai Apps atau Dock.',
     ];
-    if (alreadyInstalled && phone) {
+    if (!(ios && !alreadyInstalled)) {
       secondary.hidden = false; secondary.textContent = 'Aktifkan notification'; secondary.onclick = notificationGate;
     }
     const list = document.createElement('ol'); list.className = 'install-steps';
@@ -124,7 +124,7 @@
       }
       if (ios && !standalone()) { installGuide(); return; }
       if (!('Notification' in window) || !('PushManager' in window) || !swReady) {
-        notificationUnavailable('Telefon atau browser ini belum menyokong notification. Buka app dari Home Screen dan gunakan versi terkini.'); return;
+        notificationUnavailable('Browser ini belum menyokong push notification. Gunakan Chrome, Edge, Firefox atau Safari terkini. Pada iPhone/iPad, pasang melalui Add to Home Screen dahulu.'); return;
       }
       await swReady;
       if (!dialog.open || title.textContent !== 'Semak notification') return;
@@ -132,7 +132,7 @@
       if (dialog.open && title.textContent === 'Semak notification') notificationUnavailable('Sambungan ke server notification terganggu. Semak internet dan cuba semula.');
       return;
     }
-    show({ heading: 'Aktifkan notification', text: 'Terima hebahan Car Loan MY. Tekan butang di bawah, kemudian pilih Allow pada popup telefon.',
+    show({ heading: 'Aktifkan notification', text: 'Terima hebahan Car Loan MY pada peranti ini. Tekan butang di bawah, kemudian pilih Allow / Benarkan pada popup browser atau peranti.',
       button: 'On notification', run: enableNotifications, dismissible: false });
     featureIcon('bell-ring');
   }
@@ -147,6 +147,10 @@
   function base64Bytes(value) {
     const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
     return Uint8Array.from(atob(base64 + '='.repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
+  }
+  function permissionHelp() {
+    return ios ? 'Notification disekat. Buka Settings peranti > Notifications > Car Loan MY dan aktifkan Allow Notifications. Kemudian buka semula app dari Home Screen.'
+      : 'Notification disekat. Buka tetapan laman melalui ikon di sebelah alamat browser > Site settings / Permissions > Notifications > Allow. Semak juga Settings peranti > Notifications untuk browser ini, kemudian muat semula laman.';
   }
   async function subscribe(existingOnly = false) {
     const config = await notificationConfig();
@@ -172,21 +176,21 @@
     status.textContent = '';
     try {
       if (!('Notification' in window) || !('PushManager' in window) || !swReady) {
-        allowAfterAttempt('Telefon atau browser ini belum menyokong notification. Gunakan versi terkini; kalkulator masih boleh digunakan.'); return;
+        allowAfterAttempt('Browser ini belum menyokong push notification. Gunakan browser terkini; pada iPhone/iPad pasang app ke Home Screen dahulu. Kalkulator masih boleh digunakan.'); return;
       }
       // Call before any await so iOS sees the direct button gesture.
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        allowAfterAttempt(permission === 'denied' ? 'Notification disekat. Aktifkan semula melalui Settings telefon apabila diperlukan.' : 'Notification belum diaktifkan. Anda boleh cuba semula dalam Tetapan app.'); return;
+        allowAfterAttempt(permission === 'denied' ? permissionHelp() : 'Notification belum diaktifkan. Pilih Allow / Benarkan pada browser atau cuba semula dalam Tetapan app.'); return;
       }
       await subscribe();
       notificationAttempted = true; storage.set('carloan-notification-attempted', '1');
-      document.querySelector('#appNotice').hidden = true;
+      notice('Notification aktif untuk peranti dan browser ini. Anda sudah melanggan hebahan Car Loan MY.');
       locked = false; dialog.close(); checkAnnouncement();
     } catch (error) {
       notificationSynced = false;
       configPromise = null;
-      allowAfterAttempt(error.message);
+      allowAfterAttempt(error.name === 'NotAllowedError' ? permissionHelp() : error.name === 'AbortError' ? 'Pendaftaran push terganggu. Semak sambungan internet dan tetapan notification browser, kemudian cuba semula.' : error.message);
     } finally { action.disabled = false; }
   }
   function settings() {
@@ -256,7 +260,12 @@
         else notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
       } else if (!await subscribe(true)) notificationGate();
     }).catch(() => notice('Sambungan server notification terganggu. Kalkulator masih boleh digunakan.'));
-  } else installGuide();
+  } else {
+    installGuide();
+    if ('Notification' in window && Notification.permission === 'granted' && swReady && 'PushManager' in window) {
+      subscribe(true).catch(() => notice('Langganan notification belum disegerakkan. Cuba semula dalam Tetapan app.'));
+    }
+  }
   checkAnnouncement(new URLSearchParams(location.search).has('announcement'));
   announcementTimer = setInterval(() => { if (!document.hidden) checkAnnouncement(); }, 60000);
   setInterval(checkInstallReminder, 15000);

@@ -30,9 +30,9 @@ const server = http.createServer((req, res) => {
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
   fs.createReadStream(file).pipe(res);
 });
-async function mockInstalled(page, permission, existing = true) {
-  await page.addInitScript(({ permission, existing }) => {
-    Object.defineProperty(navigator, 'standalone', { value: true });
+async function mockInstalled(page, permission, existing = true, installed = true) {
+  await page.addInitScript(({ permission, existing, installed }) => {
+    Object.defineProperty(navigator, 'standalone', { value: installed });
     window.permissionCalls = 0;
     Object.defineProperty(window, 'Notification', { value: { permission, requestPermission: async () => { window.permissionCalls++; return permission; } } });
     window.PushManager = function() {};
@@ -41,7 +41,7 @@ async function mockInstalled(page, permission, existing = true) {
     const registration = { pushManager: { getSubscription: async () => existing ? subscription : null, subscribe: async () => { window.subscriptionCalls++; return subscription; } } };
     const sw = new EventTarget(); sw.register = async () => registration; sw.ready = Promise.resolve(registration);
     Object.defineProperty(navigator, 'serviceWorker', { value: sw });
-  }, { permission, existing });
+  }, { permission, existing, installed });
 }
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -129,6 +129,20 @@ async function mockInstalled(page, permission, existing = true) {
     const desktopApp = await pageFor(null, 1280); await desktopApp.clock.install(); await mockInstalled(desktopApp, 'granted'); await desktopApp.goto(base);
     await desktopApp.waitForTimeout(150); await desktopApp.clock.fastForward(315000);
     assert.equal(await desktopApp.locator('#dialogTitle').innerText(), 'Jadikan Car Loan MY sebagai app');
+    const desktopBrowser = await pageFor(null, 1280); await mockInstalled(desktopBrowser, 'granted', false, false); await desktopBrowser.goto(base);
+    await desktopBrowser.locator('#dialogSecondary').click();
+    await desktopBrowser.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
+    assert.match(await desktopBrowser.locator('#dialogDescription').innerText(), /browser atau peranti/);
+    await desktopBrowser.locator('#dialogAction').click();
+    await desktopBrowser.waitForFunction(() => window.subscriptionCalls === 1 && !document.querySelector('#appDialog').open);
+    assert.match(await desktopBrowser.locator('#appNotice').innerText(), /Notification aktif/);
+    const desktopDenied = await pageFor(null, 1280); await mockInstalled(desktopDenied, 'denied', false, false); await desktopDenied.goto(base);
+    await desktopDenied.locator('#dialogSecondary').click();
+    await desktopDenied.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
+    await desktopDenied.locator('#dialogAction').click();
+    assert.match(await desktopDenied.locator('#dialogStatus').innerText(), /Site settings \/ Permissions/);
+    await desktopDenied.locator('#dialogSecondary').click();
+    assert.ok(await desktopDenied.locator('#brandSelect').isEnabled());
     assert.ok(subscriptions.length > 0);
     announcement = { id: 'test-announcement', title: '<b>Hebahan</b>', message: 'Mesej\n<script>alert(1)</script>', link_url: 'https://example.com/promo', link_label: 'Lihat promosi' };
     await granted.locator('#appMenuButton').click(); await granted.getByRole('button', { name: 'Hebahan terkini' }).click();

@@ -60,6 +60,17 @@ never used for permission checks.
 - Notification permission is requested only from a direct button press. After
   denial, lack of support, or temporary backend failure, users can continue with
   a visible warning and retry from settings.
+- Desktop and Android browsers can enable push without installing the app;
+  iOS/iPadOS require a Home Screen web app. The installation guide offers a
+  notification button wherever browser push is available. OS/browser permission
+  cannot be enabled programmatically after a denial.
+- POST requests accept only the three explicit production aliases:
+  `protoncalculator.vercel.app`, `carloanmalaysia.vercel.app`, and
+  `protoncalculator-abdussomadruddin-projects.vercel.app`, plus trusted
+  `APP_ORIGIN` / comma-separated `APP_ORIGINS` configured by the operator.
+  Untrusted Host headers and arbitrary Vercel preview origins are not accepted.
+- Push endpoints are restricted to Google, Mozilla, Apple and Microsoft WNS
+  provider domains. Arbitrary HTTPS endpoints remain blocked against SSRF.
 
 ## Release checks
 
