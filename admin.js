@@ -3,6 +3,31 @@
   const status = message => { $('#adminStatus').textContent = message; };
   const icons = () => window.lucide?.createIcons();
   let busy = false;
+  let pendingBroadcast = null;
+  try { pendingBroadcast = localStorage.getItem('car-loan-admin-pending-push'); } catch {}
+  function rememberBroadcast(id) {
+    pendingBroadcast = id;
+    try { if (id) localStorage.setItem('car-loan-admin-pending-push', id); else localStorage.removeItem('car-loan-admin-pending-push'); } catch {}
+  }
+  async function sendAll(id, initial) {
+    rememberBroadcast(id);
+    let result = initial;
+    try {
+      for (let batch = 0; batch < 510; batch++) {
+        if (!result?.complete) result = await api('broadcast', { id });
+        status('Popup aktif. Provider menerima: ' + result.sent + '. Gagal: ' + result.failed + '. Sedang diproses: ' + result.processing + '.');
+        if (result.complete) {
+          if (!result.processing) rememberBroadcast(null);
+          status((result.processing ? 'Masih diproses. Sambung selepas 5 minit jika penghantaran terganggu. ' : 'Popup diterbitkan dan penghantaran push selesai. ') + 'Provider menerima: ' + result.sent + '. Gagal: ' + result.failed + '. Ini bukan pengesahan notification telah dibaca.');
+          return;
+        }
+        result = null;
+      }
+      status('Popup aktif. Penghantaran belum selesai; tekan Sambung push pada rekod ini.');
+    } catch (error) {
+      status('Popup telah diterbitkan. Push terganggu; tekan Sambung push pada rekod ini. ' + error.message);
+    }
+  }
   async function api(action, body) {
     const response = await fetch('/api/app?action=' + action, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store' });
     const data = await response.json().catch(() => ({}));
@@ -26,6 +51,7 @@
     const data = await api('admin');
     $('#loginSection').hidden = true; $('#adminDashboard').hidden = false; $('#logoutButton').hidden = false;
     $('#adminIdentity').textContent = data.email;
+    $('#publishButton').disabled = !data.pushReady; $('#publishButton').dataset.unavailable = String(!data.pushReady);
     const list = $('#announcementList'); list.replaceChildren();
     if (!data.announcements.length) { const p = document.createElement('p'); p.className = 'admin-subtitle'; p.textContent = 'Belum ada hebahan.'; list.append(p); }
     for (const a of data.announcements) {
@@ -39,17 +65,11 @@
       button('Preview', 'eye', () => preview(a.title, a.message, a.link_url, a.link_label));
       if (a.active) {
         button('Tutup popup', 'eye-off', () => task(async () => { await api('deactivate', { id: a.id }); await load(); status('Popup hebahan telah dinyahaktifkan.'); }));
-        const send = button('Notification', 'send', () => {
-          preview('Hantar notification?', a.title + '\n\nNotification akan dihantar ke peranti yang telah melanggan. Popup sahaja tidak menghantar push.', null);
+        const send = button(pendingBroadcast === a.id ? 'Sambung push' : 'Status / sambung push', 'send', () => {
+          preview('Sambung notification?', a.title + '\n\nSambung ke peranti yang belum diproses. Peranti yang sudah diterima provider tidak dihantar semula.', null);
           $('#confirmSend').hidden = false;
           $('#confirmSend').onclick = () => { $('#adminDialog').close(); task(async () => {
-            let result;
-            for (let batch = 0; batch < 510; batch++) {
-              result = await api('broadcast', { id: a.id });
-              status('Diterima provider push: ' + result.sent + '. Gagal: ' + result.failed + '. Sedang diproses: ' + result.processing + '.');
-              if (result.complete) break;
-            }
-            status((result.processing ? 'Masih ada batch sedang diproses. Cuba semula selepas 5 minit jika terganggu. ' : 'Penghantaran selesai. ') + 'Diterima provider push: ' + result.sent + '. Gagal: ' + result.failed + '. Sedang diproses: ' + result.processing + '. Ini bukan pengesahan notification telah dibaca.');
+            await sendAll(a.id); await load();
           }); };
         });
         send.disabled = !data.pushReady; send.dataset.unavailable = String(!data.pushReady);
@@ -58,10 +78,26 @@
     }
     icons();
   }
-  $('#loginForm').onsubmit = event => { event.preventDefault(); task(async () => { await api('login', { email: $('#adminEmail').value.trim() }); status('Link login telah diminta. Semak Inbox / Spam email admin dan buka link pada browser ini.'); }); };
+  $('#loginForm').onsubmit = event => { event.preventDefault(); task(async () => {
+    try { await api('login', { email: $('#adminEmail').value.trim(), password: $('#adminPassword').value }); await load(); status('Login berjaya.'); }
+    finally { $('#adminPassword').value = ''; }
+  }); };
+  $('#togglePassword').onclick = () => {
+    const visible = $('#adminPassword').type === 'password';
+    $('#adminPassword').type = visible ? 'text' : 'password';
+    $('#togglePassword').setAttribute('aria-pressed', String(visible));
+    $('#togglePassword').title = visible ? 'Sembunyikan password' : 'Tunjuk password';
+    $('#togglePassword').setAttribute('aria-label', $('#togglePassword').title);
+    $('#togglePassword').innerHTML = '<i data-lucide="' + (visible ? 'eye-off' : 'eye') + '"></i>'; icons();
+  };
   $('#announcementForm').onsubmit = event => { event.preventDefault(); task(async () => {
-    await api('publish', { title: $('#announcementTitle').value, message: $('#announcementMessage').value, linkUrl: $('#announcementLink').value.trim(), linkLabel: $('#announcementLabel').value });
-    $('#announcementForm').reset(); await load(); status('Popup diterbitkan. Tekan Notification untuk menghantar push secara berasingan.');
+    status('Menerbitkan popup dan menghantar push...');
+    const published = await api('publish', { title: $('#announcementTitle').value, message: $('#announcementMessage').value, linkUrl: $('#announcementLink').value.trim(), linkLabel: $('#announcementLabel').value });
+    rememberBroadcast(published.announcement.id);
+    $('#announcementForm').reset(); await load();
+    if (published.pushError) status(published.pushError);
+    else await sendAll(published.announcement.id, published.push);
+    await load();
   }); };
   $('#previewButton').onclick = () => { try { preview($('#announcementTitle').value || 'Tajuk hebahan', $('#announcementMessage').value || 'Mesej hebahan', $('#announcementLink').value.trim(), $('#announcementLabel').value); } catch (error) { status(error.message); } };
   $('#adminDialogClose').onclick = () => $('#adminDialog').close();
@@ -70,10 +106,8 @@
   icons();
   task(async () => {
     const params = new URLSearchParams(location.hash.slice(1));
-    const token = params.get('access_token');
     if (location.hash) history.replaceState(null, '', location.pathname);
     if (params.get('error_description')) throw new Error(params.get('error_description'));
-    if (token) await api('session', { accessToken: token });
     const config = await api('config');
     if (!config.ready) { status('Backend admin belum dikonfigurasi. Login dan hebahan belum tersedia.'); $('#loginForm button').disabled = true; $('#loginForm button').dataset.unavailable = 'true'; return; }
     try { await load(); } catch (error) { if (error.status !== 401) throw error; showLogin(); }

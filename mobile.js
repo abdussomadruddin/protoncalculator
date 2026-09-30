@@ -8,7 +8,8 @@
   const secondary = document.querySelector('#dialogSecondary');
   const close = document.querySelector('#dialogClose');
   const phone = /iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent);
-  const ios = /iPhone|iPod/i.test(navigator.userAgent);
+  const ios = /iPhone|iPod|iPad/i.test(navigator.userAgent) || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  const android = /Android/i.test(navigator.userAgent);
   const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const storage = {
     get(key) { try { return localStorage.getItem(key); } catch { return null; } },
@@ -22,6 +23,14 @@
   let configPromise;
   let announcementTimer;
   let notificationAttempted = false;
+  let notificationSynced = false;
+  const reminderInterval = 5 * 60 * 1000;
+  let nextInstallReminder = Date.now() + reminderInterval;
+  const reminderExempt = () => phone && standalone() && notificationSynced && 'Notification' in window && Notification.permission === 'granted';
+  function checkInstallReminder() {
+    if (document.hidden || dialog.open || locked || reminderExempt() || Date.now() < nextInstallReminder) return;
+    installGuide();
+  }
   const icons = () => window.lucide?.createIcons();
   const api = async (actionName, body) => {
     const response = await fetch('/api/app?action=' + actionName, {
@@ -61,19 +70,29 @@
     banner.querySelector('span').textContent = message; banner.hidden = false;
   }
   function installGuide() {
-    show({ heading: 'Jadikan app di telefon', text: ios ? 'Pasang Car Loan MY melalui Safari/Chrome.' : 'Pasang Car Loan MY melalui Chrome.',
+    nextInstallReminder = Date.now() + reminderInterval;
+    const alreadyInstalled = standalone();
+    show({ heading: ios || android ? 'Jadikan app di telefon' : 'Jadikan Car Loan MY sebagai app', text: alreadyInstalled ? 'App sudah dipasang. Peringatan berhenti untuk app telefon dengan notification aktif.' : ios ? 'Pasang Car Loan MY melalui Safari/Chrome.' : android ? 'Pasang Car Loan MY melalui Chrome.' : 'Pasang Car Loan MY melalui Chrome, Edge atau Safari pada komputer.',
       button: installPrompt ? 'Pasang app' : 'Faham', run: installPrompt ? install : dismiss });
     const steps = ios ? [
       'Buka laman ini dalam Safari/Chrome pada iPhone.',
       'Tekan Share. Jika tersembunyi, buka menu More dahulu.',
       'Pilih Add to Home Screen. Aktifkan Open as Web App jika pilihan ini muncul.',
       'Tekan Add, kemudian buka icon Car Loan MY dari Home Screen.',
-    ] : [
+    ] : android ? [
       'Buka laman ini dalam Chrome pada telefon Android.',
       'Tekan menu tiga titik di penjuru browser.',
       'Pilih Add to Home screen atau Install app.',
       'Tekan Install / Add, kemudian buka icon Car Loan MY dari Home Screen.',
+    ] : [
+      'Buka laman ini dalam Chrome, Edge atau Safari pada komputer.',
+      'Chrome / Edge: buka menu tiga titik. Safari pada Mac: buka menu File.',
+      'Chrome / Edge: pilih Install Car Loan MY atau Install page as app. Safari: pilih Add to Dock.',
+      'Tekan Install / Add, kemudian buka Car Loan MY melalui senarai Apps atau Dock.',
     ];
+    if (alreadyInstalled && phone) {
+      secondary.hidden = false; secondary.textContent = 'Aktifkan notification'; secondary.onclick = notificationGate;
+    }
     const list = document.createElement('ol'); list.className = 'install-steps';
     steps.forEach(text => { const li = document.createElement('li'); li.textContent = text; list.append(li); });
     content.append(list);
@@ -145,6 +164,7 @@
       subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64Bytes(config.vapidPublicKey) });
       await api('subscribe', { subscription: subscription.toJSON(), deviceToken });
     }
+    notificationSynced = true;
     return subscription;
   }
   async function enableNotifications() {
@@ -164,6 +184,7 @@
       document.querySelector('#appNotice').hidden = true;
       locked = false; dialog.close(); checkAnnouncement();
     } catch (error) {
+      notificationSynced = false;
       configPromise = null;
       allowAfterAttempt(error.message);
     } finally { action.disabled = false; }
@@ -184,7 +205,7 @@
     content.append(menu); icons();
   }
   async function checkAnnouncement(force = false) {
-    if (!phone || locked || (dialog.open && !displayedAnnouncement && !force)) return;
+    if (locked || (dialog.open && !displayedAnnouncement && !force)) return;
     try {
       const data = await api('announcement');
       if (locked || (dialog.open && !displayedAnnouncement && !force)) return;
@@ -210,23 +231,18 @@
   }
   dialog.addEventListener('cancel', event => { if (locked) event.preventDefault(); });
   close.onclick = dismiss;
-  dialog.addEventListener('close', () => { if (dialog.open) return; displayedAnnouncement = null; close.onclick = dismiss; });
+  dialog.addEventListener('close', () => { if (dialog.open) return; displayedAnnouncement = null; close.onclick = dismiss; checkInstallReminder(); });
   document.querySelector('#appNotice button').onclick = () => { document.querySelector('#appNotice').hidden = true; };
   document.querySelector('#appMenuButton').onclick = settings;
   addEventListener('beforeinstallprompt', event => {
     event.preventDefault(); installPrompt = event;
-    if (dialog.open && title.textContent === 'Jadikan app di telefon' && !locked) { action.textContent = 'Pasang app'; action.onclick = install; }
+    if (dialog.open && (title.textContent === 'Jadikan app di telefon' || title.textContent === 'Jadikan Car Loan MY sebagai app') && !locked) { action.textContent = 'Pasang app'; action.onclick = install; }
   });
   addEventListener('appinstalled', () => { if (!locked && dialog.open) dialog.close(); });
   addEventListener('pageshow', () => {
     if (phone && standalone() && 'Notification' in window && Notification.permission !== 'granted' && notificationAttempted) notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
   });
   icons();
-  if (!phone) {
-    show({ heading: 'Untuk telefon sahaja', text: 'Car Loan MY hanya boleh digunakan di telefon. Buka alamat ini menggunakan browser iPhone atau Android.',
-      button: 'Copy link', run: async () => { try { await navigator.clipboard.writeText(location.origin + '/'); action.textContent = 'Link disalin'; } catch { status.textContent = location.origin + '/'; } }, dismissible: false });
-    featureIcon('smartphone'); return;
-  }
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     swReady = navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready);
     swReady.catch(() => { swReady = null; });
@@ -243,7 +259,7 @@
   } else installGuide();
   checkAnnouncement(new URLSearchParams(location.search).has('announcement'));
   announcementTimer = setInterval(() => { if (!document.hidden) checkAnnouncement(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAnnouncement(); });
+  setInterval(checkInstallReminder, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkInstallReminder(); checkAnnouncement(); } });
   navigator.serviceWorker?.addEventListener('message', event => checkAnnouncement(event.data?.force === true));
-  addEventListener('pagehide', () => clearInterval(announcementTimer), { once: true });
 })();

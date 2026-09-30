@@ -41,15 +41,36 @@ test('non-admin and unconfirmed accounts cannot use admin API', async () => {
     assert.equal((await request('admin', { cookie: '__Host-carloan-admin=valid.jwt.token' })).code, 403);
   }
 });
-test('magic-link login exchanges verified token into secure HttpOnly session', async () => {
+test('password login verifies admin and creates a secure HttpOnly session without exposing tokens', async () => {
   const jwt = 'header.' + Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url') + '.signature';
-  global.fetch = async url => {
-    assert.equal(url, 'https://test.supabase.co/auth/v1/user');
-    return new Response(JSON.stringify({ email: 'lurbaymarketing@gmail.com', email_confirmed_at: '2026-09-30' }), { status: 200 });
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://test.supabase.co/auth/v1/token?grant_type=password');
+    assert.equal(JSON.parse(options.body).password, 'test-only-password');
+    return new Response(JSON.stringify({ access_token: jwt, user: { email: 'lurbaymarketing@gmail.com', email_confirmed_at: '2026-09-30' } }), { status: 200 });
   };
-  const res = await request('session', { method: 'POST', body: { accessToken: jwt } });
+  const res = await request('login', { method: 'POST', body: { email: 'lurbaymarketing@gmail.com', password: 'test-only-password' } });
   assert.equal(res.code, 200); assert.match(res.headers['Set-Cookie'], /HttpOnly; Secure; SameSite=Strict/);
   assert.ok(!JSON.stringify(res.data).includes(jwt));
+});
+test('missing and incorrect passwords fail without a session', async () => {
+  assert.equal((await request('login', { method: 'POST', body: { email: 'lurbaymarketing@gmail.com' } })).code, 401);
+  global.fetch = async () => new Response('{"error":"invalid_grant"}', { status: 400 });
+  const result = await request('login', { method: 'POST', body: { email: 'lurbaymarketing@gmail.com', password: 'wrong-test-password' } });
+  assert.equal(result.code, 401); assert.equal(result.headers['Set-Cookie'], undefined);
+});
+test('publishing starts push in the same request and preserves ID on push failure', async () => {
+  Object.assign(process.env, { VAPID_PUBLIC_KEY: 'test', VAPID_PRIVATE_KEY: 'test', VAPID_SUBJECT: 'mailto:test@example.com' });
+  const id = '00000000-0000-4000-8000-000000000001';
+  let publishCalls = 0, pushCalls = 0;
+  global.fetch = async url => {
+    if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ email: 'lurbaymarketing@gmail.com', email_confirmed_at: '2026-09-30' }));
+    if (url.endsWith('/rpc/car_publish_announcement')) { publishCalls++; return new Response(JSON.stringify({ id })); }
+    if (url.includes('/car_announcements?id=')) { pushCalls++; return new Response('[]'); }
+    throw new Error('Unexpected URL');
+  };
+  const res = await request('publish', { method: 'POST', cookie: '__Host-carloan-admin=valid.jwt.token', body: { title: 'Test', message: 'Test message' } });
+  assert.equal(res.code, 200); assert.equal(res.data.announcement.id, id); assert.ok(res.data.pushError);
+  assert.equal(publishCalls, 1); assert.equal(pushCalls, 1);
 });
 test('backend error details never leak publicly', async () => {
   global.fetch = async () => new Response('{"message":"private SQL and keys private-service-key"}', { status: 500 });

@@ -53,11 +53,21 @@ async function mockInstalled(page, permission, existing = true) {
     const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message)); return page;
   }
   try {
-    const desktop = await pageFor(null, 1280); await desktop.goto(base);
-    assert.equal(await desktop.locator('#dialogTitle').innerText(), 'Untuk telefon sahaja');
-    assert.ok(await desktop.locator('#dialogClose').isHidden());
-    await desktop.keyboard.press('Escape'); assert.ok(await desktop.locator('#appDialog').isVisible());
-    await desktop.screenshot({ path: '/tmp/car-loan-desktop-gate.png' });
+    const desktop = await pageFor(null, 1280); await desktop.clock.install(); await desktop.goto(base);
+    assert.equal(await desktop.locator('#dialogTitle').innerText(), 'Jadikan Car Loan MY sebagai app');
+    assert.equal(await desktop.locator('.install-steps li').count(), 4);
+    assert.ok(await desktop.locator('#dialogClose').isVisible());
+    await desktop.keyboard.press('Escape'); assert.ok(await desktop.locator('#appDialog').isHidden());
+    assert.ok(await desktop.locator('#brandSelect').isEnabled());
+    await desktop.clock.fastForward(299000); assert.ok(await desktop.locator('#appDialog').isHidden());
+    await desktop.clock.fastForward(16000); assert.ok(await desktop.locator('#appDialog').isVisible());
+    await desktop.locator('#dialogClose').click();
+    await desktop.locator('#appMenuButton').click();
+    await desktop.clock.fastForward(300000);
+    assert.equal(await desktop.locator('#dialogTitle').innerText(), 'Tetapan app');
+    await desktop.locator('#dialogClose').click();
+    await desktop.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Jadikan Car Loan MY sebagai app');
+    await desktop.screenshot({ path: '/tmp/car-loan-desktop-install.png' });
     await desktop.goto(base + '/admin');
     assert.ok(await desktop.locator('#loginSection').isVisible());
     assert.ok(await desktop.locator('#adminDashboard').isHidden());
@@ -112,9 +122,13 @@ async function mockInstalled(page, permission, existing = true) {
     assert.equal(await firstSubscription.evaluate(() => window.subscriptionCalls), 0);
     await firstSubscription.locator('#dialogAction').click();
     await firstSubscription.waitForFunction(() => window.subscriptionCalls === 1 && !document.querySelector('#appDialog').open);
-    const granted = await pageFor(androidUA); await mockInstalled(granted, 'granted'); await granted.goto(base);
+    const granted = await pageFor(androidUA); await granted.clock.install(); await mockInstalled(granted, 'granted'); await granted.goto(base);
     await granted.waitForFunction(() => !document.querySelector('#appDialog').open);
     await granted.waitForTimeout(150);
+    await granted.clock.fastForward(600000); assert.ok(await granted.locator('#appDialog').isHidden());
+    const desktopApp = await pageFor(null, 1280); await desktopApp.clock.install(); await mockInstalled(desktopApp, 'granted'); await desktopApp.goto(base);
+    await desktopApp.waitForTimeout(150); await desktopApp.clock.fastForward(315000);
+    assert.equal(await desktopApp.locator('#dialogTitle').innerText(), 'Jadikan Car Loan MY sebagai app');
     assert.ok(subscriptions.length > 0);
     announcement = { id: 'test-announcement', title: '<b>Hebahan</b>', message: 'Mesej\n<script>alert(1)</script>', link_url: 'https://example.com/promo', link_label: 'Lihat promosi' };
     await granted.locator('#appMenuButton').click(); await granted.getByRole('button', { name: 'Hebahan terkini' }).click();
@@ -134,6 +148,6 @@ async function mockInstalled(page, permission, existing = true) {
     await granted.locator('#dialogClose').click();
     await granted.reload(); assert.ok(await granted.locator('#appDialog').isHidden());
     assert.deepEqual(errors, []);
-    console.log('PASS mobile: desktop gate, admin exception, 4-step iOS/Android installs, real SW, denied/granted notification, subscription, safe announcement, icons, CSP and 320/390/430px layouts.');
+    console.log('PASS mobile: all-device access, 5-minute install reminders, modal deferral, phone notification exemption, desktop app reminders, admin, 4-step guides, subscription and phone layouts.');
   } finally { for (const context of contexts) await context.close(); await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

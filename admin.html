@@ -16,8 +16,12 @@
     <header class="topbar"><img class="app-logo" src="/icon-192.png?v=20260930" width="52" height="52" alt="Car Loan MY" /><div><p class="eyebrow">ADMIN</p><h1>Car Loan MY</h1></div><button id="logoutButton" class="icon-button" title="Logout" aria-label="Logout" hidden><i data-lucide="log-out"></i></button></header>
     <p id="adminStatus" class="admin-status" role="status" aria-live="polite"></p>
     <section id="loginSection">
-      <h2>Login admin</h2><p class="admin-subtitle">Link login dihantar ke email admin yang berdaftar.</p>
-      <form id="loginForm"><label><span>Email admin</span><input id="adminEmail" type="email" autocomplete="email" required placeholder="Email admin" /></label><button type="submit" class="primary-action"><i data-lucide="mail"></i> Hantar link login</button></form>
+      <h2>Login admin</h2>
+      <form id="loginForm">
+        <label><span>Email admin</span><input id="adminEmail" type="email" autocomplete="username" required placeholder="Email admin" /></label>
+        <label><span>Password</span><span class="password-field"><input id="adminPassword" type="password" autocomplete="current-password" required maxlength="256" /><button id="togglePassword" type="button" class="icon-button" title="Tunjuk password" aria-label="Tunjuk password" aria-pressed="false"><i data-lucide="eye"></i></button></span></label>
+        <button type="submit" class="primary-action"><i data-lucide="log-in"></i> Login</button>
+      </form>
     </section>
     <section id="adminDashboard" hidden>
       <div class="admin-section-heading"><div><h2>Hebahan</h2><p id="adminIdentity" class="admin-subtitle"></p></div><button id="refreshButton" class="icon-button" title="Refresh" aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
@@ -28,8 +32,8 @@
           <label><span>Mesej</span><textarea id="announcementMessage" maxlength="1500" required></textarea></label>
           <label><span>Link butang (optional)</span><input id="announcementLink" type="url" placeholder="https://" /></label>
           <label><span>Nama butang</span><input id="announcementLabel" maxlength="50" placeholder="Buka link" /></label>
-          <p class="admin-subtitle">Hebahan baharu menggantikan popup aktif. Notification dihantar secara berasingan.</p>
-          <div class="admin-form-actions"><button id="previewButton" type="button" class="secondary-action"><i data-lucide="eye"></i> Preview</button><button type="submit" class="primary-action"><i data-lucide="megaphone"></i> Terbitkan popup</button></div>
+          <p class="admin-subtitle">Hebahan baharu menggantikan popup aktif dan menghantar push ke semua peranti yang aktif melanggan.</p>
+          <div class="admin-form-actions"><button id="previewButton" type="button" class="secondary-action"><i data-lucide="eye"></i> Preview</button><button id="publishButton" type="submit" class="primary-action"><i data-lucide="megaphone"></i> Terbitkan &amp; hantar push</button></div>
         </form>
         <section aria-label="Senarai hebahan"><h3>Rekod hebahan</h3><div id="announcementList"></div></section>
       </div>

@@ -17,15 +17,16 @@ not use or migrate any LeadFlow, Lead Laju, or CasePilot data.
 5. Generate VAPID keys with `require('web-push').generateVAPIDKeys()` and save
    them to the server environment. Never rotate these casually; installed
    subscriptions depend on the same public key.
-6. Deploy after local verification. Open `/admin`, request a magic link for
-   `lurbaymarketing@gmail.com`, and complete the login from the owner's email.
+6. Provision the owner's password through Supabase Auth's server-only admin
+   API, never through a source-code constant. Deploy after local verification.
+   Open `/admin` and login with the allowlisted email and password.
 
 No demo password, browser-local admin permission, or fake notification sender
-is used. Supabase's default email sender can restrict recipients to team-member
-addresses and has low rate limits. Configure a real SMTP provider if needed.
-Magic links are handled on `/admin`; the access token is immediately removed
-from the URL and exchanged for a Secure, HttpOnly, SameSite=Strict cookie with
-at most a one-hour lifetime. Server authorization validates the Supabase user
+is used. CAPTCHA was explicitly deferred by the owner. The server verifies
+the password through Supabase Auth; only the confirmed allowlisted account
+receives a Secure, HttpOnly, SameSite=Strict cookie with at most a one-hour
+lifetime. Access and refresh tokens are never returned to the frontend.
+Server authorization validates the Supabase user
 and confirmed allowlisted email on every protected request. User metadata is
 never used for permission checks.
 
@@ -34,7 +35,11 @@ never used for permission checks.
 - Publishing activates a popup and replaces the previous active popup atomically.
 - The close button dismisses that popup on one device. Admin can deactivate it
   globally; open clients check once per minute and whenever foregrounded.
-- Notification sending is a separate, confirmed action from the admin panel.
+- Publishing also starts a push batch in the same request. The admin client
+  automatically drains remaining batches without a second click. If push fails
+  after publishing, the popup ID is retained and a separate resume action is
+  available without republishing. An interrupted browser must resume from its
+  announcement record; this is not an unattended background job queue.
 - Recipients are captured at the first send attempt. New subscribers can still
   see the active in-app popup; publish a new announcement to notify them.
 - Durable batches claim 20 subscriptions at a time. Concurrent calls cannot
@@ -46,8 +51,12 @@ never used for permission checks.
 - Counts mean accepted by the push provider, not delivered/read on a real phone.
 - Calculator prices are network-only: the service worker does not cache stale
   catalogs, authenticated API responses, or financial calculations.
-- The phone-only gate is a UX check, not a security boundary. `/admin` is usable
-  on desktop and protected by server auth independently of that gate.
+- The calculator supports desktop, tablet and phone browsers. Installation
+  suggestions appear initially and every five minutes (checked every 15 seconds
+  and on foreground return), without interrupting another open dialog. Only a
+  phone installed app with granted permission and a server-synced subscription
+  is exempt. Desktop installed apps and phones without active notification
+  still receive reminders. `/admin` has no installation reminders.
 - Notification permission is requested only from a direct button press. After
   denial, lack of support, or temporary backend failure, users can continue with
   a visible warning and retry from settings.
@@ -61,6 +70,6 @@ other remote security settings are intentionally left unchanged.
 
 Run calculator regressions, mobile onboarding/UI tests and server auth tests.
 Verify configured API responses, direct database anon denial and RPC permissions.
-Then the owner must validate the actual email magic link and a push on at least
+Then the owner must validate password login and a push on at least
 one iPhone installed app and one Android installed app. Browser mocks do not
 prove OS permission dialogs or real-device notification delivery.

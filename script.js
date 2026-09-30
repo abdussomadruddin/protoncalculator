@@ -19,6 +19,14 @@ const loanPeriodSelect = $("#loanPeriod");
 const templateOutput = $("#templateOutput");
 let statusTimer = null;
 let interestRateManual = false;
+let rebateManual = false;
+let rebateDate = null;
+function selectedOffer() { return findOfficialRebate(brandSelect.value, modelSelect.value, variantSelect.value, $("#rebateYear").value, localDate()); }
+function applyRebate() {
+  rebateManual = false; rebateDate = localDate();
+  const offer = selectedOffer();
+  rebateInput.value = offer ? offer.amount : "";
+}
 
 // Editable flat-rate estimation policy, not a bank quote or guaranteed minimum rate.
 function getDefaultInterestRate(price, model = getSelectedModel()) {
@@ -66,7 +74,8 @@ function populateVariants(preferred = "") {
 function updatePriceFromVariant() {
   const variant = getSelectedVariant();
   bodyPriceInput.value = variant.bodyPrice;
-  rebateInput.value = "";
+  $("#rebateYear").value = "2026";
+  applyRebate();
   interestRateManual = false;
   interestRateInput.value = getDefaultInterestRate(variant.bodyPrice);
   extrasInput.value = 0;
@@ -85,6 +94,7 @@ function getDepositLabel() {
   return { ten: "10% deposit", custom: "Custom deposit", full: "Full loan" }[getCheckedValue("depositOption")];
 }
 function calculateValues() {
+  if (!rebateManual && rebateDate !== localDate()) applyRebate();
   const model = getSelectedModel();
   const variant = getSelectedVariant();
   const hasBodyPrice = true;
@@ -160,7 +170,11 @@ function render() {
     model.paintNote, model.note,
     localDate().slice(0, 7) !== CATALOG_CHECKED_AT.slice(0, 7) ? "Snapshot September 2026. Harga bulan semasa perlu disemak semula." : "",
   ].filter(Boolean).join(" ");
-  $("#rebateNote").textContent = "Rebate manual; kosong bermaksud tiada rebate dimasukkan.";
+  const offer = selectedOffer();
+  const audit = REBATE_AUDIT_SOURCES[values.brand];
+  $("#rebateYearWrap").hidden = !["Honda", "Chery"].includes(values.brand);
+  $("#rebateNote").textContent = (rebateManual ? "Rebate manual. " : offer ? "Default rasmi " + money(offer.amount) + ". " : "Rebate belum dapat disahkan; dibiarkan kosong, bukan pengesahan tiada promosi. ") + (offer?.note || audit.note) + (localDate() > REBATE_CHECKED_AT ? " Snapshot rebate perlu disemak semula untuk bulan semasa." : " Disemak 30 Sep 2026.");
+  $("#rebateSource").href = offer?.source || audit.source;
   $("#interestNote").textContent = "Default anggaran flat: bawah RM50k 3.00%, RM50k–99,999.99 2.50%, RM100k ke atas / EV 2.35%, komersial 3.50%. Bukan kadar terendah dijamin; ubah mengikut tawaran bank. Kadar effective/reducing balance tidak boleh dimasukkan sebagai kadar flat.";
   $("#confirmationWrap").hidden = !model.estimated && !model.needsConfirmation;
   $("#insuranceNote").textContent = values.hasBodyPrice
@@ -220,9 +234,11 @@ function resetDefaults() {
 brandSelect.addEventListener("change", () => { populateModels(); render(); });
 modelSelect.addEventListener("change", () => { populateVariants(); render(); });
 variantSelect.addEventListener("change", () => { updatePriceFromVariant(); render(); });
+$("#rebateYear").addEventListener("change", () => { applyRebate(); render(); });
 // Selects dispatch input before change; their dependent options are not rebuilt yet.
 form.addEventListener("input", (event) => {
   if (event.target === interestRateInput) interestRateManual = true;
+  if (event.target === rebateInput) rebateManual = true;
   if (event.target === bodyPriceInput && !interestRateManual) {
     interestRateInput.value = getDefaultInterestRate(readNumber(bodyPriceInput));
   }
@@ -233,3 +249,5 @@ $("#copyButton").addEventListener("click", copyTemplate);
 $("#resetButton").addEventListener("click", resetDefaults);
 fillOptions(brandSelect, Object.keys(CAR_CATALOG));
 resetDefaults();
+setInterval(() => { if (!document.hidden && rebateDate !== localDate()) render(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });

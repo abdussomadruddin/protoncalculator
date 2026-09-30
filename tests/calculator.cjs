@@ -9,6 +9,19 @@ const context = {};
 vm.runInNewContext(fs.readFileSync(path.join(root, 'catalog.js'), 'utf8') + ';globalThis.catalog=CAR_CATALOG', context);
 const catalog = JSON.parse(JSON.stringify(context.catalog));
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005, `${actual} != ${expected}`);
+function expectedRebate(brand, model, variant) {
+  if (brand === 'Proton') return { 'NEW S70 1.5 i-GT': 3000, 'e.MAS 5': 3000, 'e.MAS 7': 7000, 'e.MAS 7 PHEV': 4000 }[model] || 0;
+  if (brand === 'Perodua' && model === 'QV-E') return 16500;
+  if (brand === 'Honda') {
+    if (model === 'City Hatchback') return 6000;
+    if (model === 'Civic') return ['1.5L E', '1.5L V'].includes(variant) ? 8000 : 12000;
+    if (model === 'HR-V') return { '1.5L S': 8000, '1.5L T E': 8000, '1.5L T V': 6000, '1.5L e:HEV RS': 9000 }[variant];
+    if (model === 'CR-V') return variant === '1.5L V' ? 10000 : 7000;
+    if (model === 'WR-V') return 5000;
+  }
+  if (brand === 'Chery') return { 'Chery O5': 11000, 'Omoda E5': 38178 }[model] || 0;
+  return 0;
+}
 
 (async () => {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -31,10 +44,10 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     assert.equal(v.model, 'NEW S70 1.5 i-GT');
     assert.equal(v.interestRate, 2.5);
     assert.equal(v.loanPeriod, 9);
-    assert.equal(v.rebate, 0);
-    assert.equal(await page.inputValue('#rebate'), '');
+    assert.equal(v.rebate, 3000);
+    assert.equal(await page.inputValue('#rebate'), '3000');
     near(v.insurance, 59800 * .033);
-    near(v.otrTotal, 59800 + 59800 * .033);
+    near(v.otrTotal, 56800 + 59800 * .033);
     let variants = 0;
     for (const [brand, models] of Object.entries(catalog)) {
       assert.equal(new Set(models.map(m => m.name)).size, models.length);
@@ -46,7 +59,8 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
           assert.ok(/^https:\/\//.test(variant.source || model.source));
           await select(brand, model.name, variant.name);
           assert.equal(Number(await page.inputValue('#bodyPrice')), variant.otrPrice);
-          assert.equal(await page.inputValue('#rebate'), '');
+          const rebate = expectedRebate(brand, model.name, variant.name);
+          assert.equal(await page.inputValue('#rebate'), rebate ? String(rebate) : '', `${brand} / ${model.name} / ${variant.name}`);
           const expectedRate = model.registration === 'Company Commercial' ? 3.5 : model.powertrain === 'EV' ? 2.35 : variant.otrPrice < 50000 ? 3 : variant.otrPrice < 100000 ? 2.5 : 2.35;
           assert.equal(Number(await page.inputValue('#interestRate')), expectedRate);
           assert.equal(await page.locator('#priceSource').getAttribute('href'), variant.source || model.source);
@@ -57,10 +71,10 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
           }
           v = await values();
           assert.deepEqual(v.errors, []);
-          near(v.otrTotal, variant.otrPrice);
+          near(v.otrTotal, variant.otrPrice - rebate);
           await page.locator('input[name="insuranceOption"][value="with"]').check();
           v = await values(); near(v.insurance, variant.otrPrice * .033);
-          near(v.otrTotal, variant.otrPrice * 1.033);
+          near(v.otrTotal, variant.otrPrice * 1.033 - rebate);
           assert.deepEqual(v.errors, []);
           const text = await page.inputValue('#templateOutput');
           assert.ok(text.startsWith('*' + brand.toUpperCase() + ' LOAN ESTIMATE*'));
@@ -71,6 +85,19 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
         }
       }
     }
+    await select('Chery', 'Chery O5', '1.5 Turbo');
+    await page.locator('.price-details summary').click();
+    await page.selectOption('#rebateYear', '2025'); assert.equal(await page.inputValue('#rebate'), '17000');
+    await page.selectOption('#rebateYear', '2026'); assert.equal(await page.inputValue('#rebate'), '11000');
+    await select('Chery', 'Tiggo Cross', '1.5 Hybrid CSH');
+    assert.equal(await page.inputValue('#rebate'), '');
+    await page.selectOption('#rebateYear', '2025'); assert.equal(await page.inputValue('#rebate'), '7888');
+    await select('Honda', 'Civic', '1.5L RS');
+    assert.equal(await page.inputValue('#rebate'), '12000');
+    await page.selectOption('#rebateYear', '2025'); assert.equal(await page.inputValue('#rebate'), '');
+    await page.locator('.price-details summary').click();
+    await reset(); await page.fill('#rebate', '1234'); await page.selectOption('#loanPeriod', '8');
+    assert.equal(await page.inputValue('#rebate'), '1234');
     await reset();
     for (let year = 1; year <= 9; year++) {
       await page.selectOption('#loanPeriod', String(year));
@@ -104,11 +131,11 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     v = await values(); near(v.otrTotal, 22000);
     await select('Perodua', 'QV-E', 'Battery-as-a-Service (BaaS)');
     assert.ok(await page.locator('#batterySummary').isVisible());
-    v = await values(); near(v.otrTotal, 69999); assert.equal(v.batteryMonthly, 215);
+    v = await values(); near(v.otrTotal, 53499); assert.equal(v.batteryMonthly, 215);
     assert.ok((await page.inputValue('#templateOutput')).includes('108 months'));
     await select('Perodua', 'QV-E', 'Full Purchase (Battery Included)');
     assert.ok(await page.locator('#batterySummary').isHidden());
-    v = await values(); near(v.otrTotal, 93999);
+    v = await values(); near(v.otrTotal, 77499);
     await reset();
     for (const [price, rate] of [[49999.99, 3], [50000, 2.5], [99999.99, 2.5], [100000, 2.35]]) {
       await page.fill('#bodyPrice', String(price));

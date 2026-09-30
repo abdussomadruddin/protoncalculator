@@ -4,6 +4,9 @@
 .admin-subtitle{font-size:13px;color:var(--muted);line-height:1.6;overflow-wrap:anywhere}
 #loginSection{max-width:420px;margin:60px auto}
 #loginForm{display:grid;gap:18px;margin-top:24px}
+.password-field{position:relative;display:block}
+.password-field input{padding-right:60px}
+.password-field button{position:absolute;right:5px;top:5px;width:44px;height:44px;min-height:44px;border:0;background:transparent}
 .admin-section-heading{display:flex;align-items:center;justify-content:space-between;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .admin-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;margin-top:24px}
 .admin-workspace>*{min-width:0}

@@ -37,7 +37,9 @@ async function supabase(path, { method = 'GET', body, authToken, service = true,
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     // Never relay upstream SQL details, credentials, or subscription endpoints.
-    throw new HttpError(response.status === 401 || response.status === 403 ? 401 : 503, response.status === 401 || response.status === 403 ? 'Sesi tamat atau login tidak sah.' : 'Backend tidak tersedia. Cuba lagi.');
+    const invalidLogin = path.startsWith('/auth/v1/token?') && response.status === 400;
+    const denied = invalidLogin || response.status === 401 || response.status === 403;
+    throw new HttpError(response.status === 429 ? 429 : denied ? 401 : 503, response.status === 429 ? 'Terlalu banyak percubaan. Cuba lagi sebentar.' : denied ? 'Sesi tamat atau login tidak sah.' : 'Backend tidak tersedia. Cuba lagi.');
   }
   return { data, headers: response.headers };
 }
@@ -48,6 +50,12 @@ function sameOrigin(req) {
 function adminToken(req) {
   const cookie = String(req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(cookieName + '='));
   return cookie?.slice(cookieName.length + 1);
+}
+function setAdminSession(res, accessToken) {
+  const claims = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString());
+  const expires = Math.max(0, Math.min((claims.exp || 0) - Math.floor(Date.now() / 1000), 3600));
+  if (!expires) fail(401, 'Sesi login telah tamat.');
+  res.setHeader('Set-Cookie', `${cookieName}=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires}`);
 }
 async function requireAdmin(req) {
   const token = adminToken(req);
@@ -121,20 +129,14 @@ module.exports = async function handler(req, res) {
     }
     if (action === 'login') {
       requirePost(req);
-      if (typeof body.email !== 'string' || body.email.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(401, 'Email admin tidak sah.');
-      const redirect = (process.env.APP_ORIGIN || 'https://protoncalculator.vercel.app') + '/admin';
-      await supabase('/auth/v1/otp?redirect_to=' + encodeURIComponent(redirect), { service: false, method: 'POST', body: { email: body.email, create_user: true } });
-      return res.status(200).json({ sent: true });
-    }
-    if (action === 'session') {
-      requirePost(req);
-      if (typeof body.accessToken !== 'string' || !/^[A-Za-z0-9_.-]{20,4096}$/.test(body.accessToken)) fail(401, 'Link login tidak sah.');
-      const { data: user } = await supabase('/auth/v1/user', { service: false, authToken: body.accessToken });
+      if (typeof body.email !== 'string' || body.email.trim().toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase() || typeof body.password !== 'string' || !body.password || body.password.length > 256) fail(401, 'Email atau password tidak sah.');
+      let session;
+      try {
+        ({ data: session } = await supabase('/auth/v1/token?grant_type=password', { service: false, method: 'POST', body: { email: body.email.trim(), password: body.password } }));
+      } catch (error) { if (error.status === 401) fail(401, 'Login gagal. Semak email dan password.'); throw error; }
+      const user = session?.user;
       if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses tidak dibenarkan.');
-      const claims = JSON.parse(Buffer.from(body.accessToken.split('.')[1], 'base64url').toString());
-      const expires = Math.max(0, Math.min((claims.exp || 0) - Math.floor(Date.now() / 1000), 3600));
-      if (!expires) fail(401, 'Link login telah tamat.');
-      res.setHeader('Set-Cookie', `${cookieName}=${body.accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires}`);
+      setAdminSession(res, session.access_token);
       return res.status(200).json({ email: user.email });
     }
     if (action === 'logout') {
@@ -152,13 +154,18 @@ module.exports = async function handler(req, res) {
     }
     if (action === 'publish') {
       requirePost(req);
+      if (!pushReady()) fail(503, 'Push notification belum tersedia. Hebahan belum diterbitkan.');
       const title = String(body.title || '').trim(); const message = String(body.message || '').trim();
       const linkLabel = String(body.linkLabel || '').trim();
       if (!title || title.length > 100 || !message || message.length > 1500 || linkLabel.length > 50) fail(400, 'Lengkapkan tajuk dan mesej dalam had yang ditetapkan.');
       const { data } = await supabase('/rest/v1/rpc/car_publish_announcement', { method: 'POST', body: {
         announcement_title: title, announcement_message: message, announcement_link: httpsLink(body.linkUrl), announcement_label: linkLabel || null,
       } });
-      return res.status(200).json({ announcement: data });
+      // Return the published ID even if push fails, so retries never republish the popup.
+      let push = null, pushError = null;
+      try { push = await broadcast(data.id); }
+      catch { pushError = 'Popup diterbitkan tetapi push terganggu. Sambung penghantaran pada rekod hebahan ini.'; }
+      return res.status(200).json({ announcement: data, push, pushError });
     }
     if (action === 'deactivate') {
       requirePost(req);
