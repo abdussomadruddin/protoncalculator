@@ -119,7 +119,7 @@ function calculateValues() {
   };
 }
 function buildTemplate(values) {
-  const { modelData: model, variantData: variant } = values;
+  const { variantData: variant } = values;
   const paymentLines = [values.depositLabel + ", 7 years: *" + money(values.baseMonthly) + "/month*"];
   if (values.loanPeriod !== 7) paymentLines.push(values.depositLabel + ", " + values.loanPeriod + " years: *" + money(values.selectedMonthly) + "/month*");
   const lines = [
@@ -140,17 +140,6 @@ function buildTemplate(values) {
   if (values.batteryMonthly) lines.push("", "Battery lease: " + money(values.batteryMonthly) + "/month for " + variant.batteryMonths + " months (separate from loan)",
     "Loan + battery lease (" + values.loanPeriod + " years loan): *" + money(values.selectedMonthly + values.batteryMonthly) + "/month*",
     "Battery lease continues for its own term, even if the car loan ends earlier.");
-  lines.push("", "Registration: " + (model.registration || "Individual Private") + ", Peninsular Malaysia",
-    "Official price snapshot: " + model.checkedAt, "Source: " + (variant.source || model.source));
-  if (values.priceOverride) lines.push("Price manually adjusted; not the published source price.");
-  if (!values.hasBodyPrice && values.insuranceOption === "with") lines.push("Insurance body price entered manually; not published in source.");
-  if (values.rebate) lines.push(offerIsCurrent(model.rebate) && values.rebate === model.rebate.amount
-    ? "Introductory offer: " + model.rebate.source + " (subject to terms and stock)" : "Rebate entered manually; confirm eligibility with dealer.");
-  if (model.estimated) lines.push("Official source price is ESTIMATED; final dealer price must be confirmed.");
-  if (model.needsConfirmation) lines.push(model.note);
-  if (model.registration === "Company Commercial") lines.push("Commercial insurance requires an insurer quotation; 3% is an estimate only.");
-  if (localDate().slice(0, 7) !== model.checkedAt.slice(0, 7)) lines.push("Price snapshot is not for the current month; recheck with dealer.");
-  lines.push("Estimate only; subject to bank approval and insurer quotation.");
   return lines.join("\n");
 }
 function render() {

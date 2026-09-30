@@ -55,6 +55,7 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
           near(v.otrTotal, variant.otrPrice - (model.rebate?.amount || 0));
           const text = await page.inputValue('#templateOutput');
           assert.ok(text.startsWith('*' + brand.toUpperCase() + ' LOAN ESTIMATE*'));
+          assert.ok(!/\nRegistration:|Official price snapshot:|Source:|Introductory offer:|Estimate only;|https:\/\//.test(text));
           assert.ok(!/NaN|undefined|Infinity/.test(text));
           variants++;
         }
@@ -111,7 +112,7 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     await reset();
     v = await values(); assert.equal(v.rebate, 0);
     assert.ok((await page.locator('#priceNote').innerText()).includes('Snapshot September'));
-    assert.ok((await page.inputValue('#templateOutput')).includes('not for the current month'));
+    assert.ok(!(await page.inputValue('#templateOutput')).includes('not for the current month'));
     assert.deepEqual(errors, []);
     console.log(`PASS: 7 brands, ${Object.values(catalog).flat().length} models, ${variants} variants; all periods, deposit, NCD, battery, confirmations, clipboard and 5 viewport sizes.`);
   } catch (error) {

@@ -22,7 +22,7 @@ Only officially offered Malaysian models in the current brand catalogs are inclu
 - Jetour T2 i-DM: the PM-linked PDF table says East Malaysia while its footer covers both regions. Price and charges require dealer confirmation before copy.
 - Chery Tiggo Cross Sport Edition is announced for launch next month; no official price is supplied as of this snapshot. No price has been invented. [Official announcement](https://www.chery.my/2026/09/29/chery-malaysia-gives-a-sneak-peek-at-the-upcoming-chery-tiggo-cross-sports-edition/).
 - Rebates default to zero unless an exact introductory price difference is verified in the current official model page/PDF. Zero means no rebate entered, not no promotion. Conditional trade-in/loyalty offers and “up to” amounts are not applied universally.
-- Automatic introductory rebates have a verification cutoff of 30 September 2026, not an asserted manufacturer expiry. From 1 October they fall back to manual zero until reverified. The app and copied text warn when the snapshot is not the current month.
+- Automatic introductory rebates have a verification cutoff of 30 September 2026, not an asserted manufacturer expiry. From 1 October they fall back to manual zero until reverified. The app warns when the snapshot is not the current month. Source, registration, snapshot and advisory metadata are kept in the app, not appended to the customer-facing WhatsApp template.
 - Default brand/model/variant remain Proton / NEW S70 1.5 i-GT / Lite. Default interest remains 2.35%, flat estimate; actual bank product eligibility and rate may differ.
 
 ## Verification
