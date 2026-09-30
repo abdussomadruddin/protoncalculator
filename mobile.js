@@ -26,7 +26,7 @@
   const api = async (actionName, body) => {
     const response = await fetch('/api/app?action=' + actionName, {
       method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' },
-      ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store',
+      ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store', signal: AbortSignal.timeout(12000),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) { const error = new Error(data.error || 'Sambungan terganggu. Cuba lagi.'); error.status = response.status; throw error; }
@@ -61,10 +61,10 @@
     banner.querySelector('span').textContent = message; banner.hidden = false;
   }
   function installGuide() {
-    show({ heading: 'Jadikan app di telefon', text: ios ? 'Pasang Car Loan MY melalui Safari.' : 'Pasang Car Loan MY melalui Chrome.',
+    show({ heading: 'Jadikan app di telefon', text: ios ? 'Pasang Car Loan MY melalui Safari/Chrome.' : 'Pasang Car Loan MY melalui Chrome.',
       button: installPrompt ? 'Pasang app' : 'Faham', run: installPrompt ? install : dismiss });
     const steps = ios ? [
-      'Buka laman ini dalam Safari pada iPhone.',
+      'Buka laman ini dalam Safari/Chrome pada iPhone.',
       'Tekan Share. Jika tersembunyi, buka menu More dahulu.',
       'Pilih Add to Home Screen. Aktifkan Open as Web App jika pilihan ini muncul.',
       'Tekan Add, kemudian buka icon Car Loan MY dari Home Screen.',
@@ -85,7 +85,34 @@
     const choice = await prompt.userChoice;
     if (choice.outcome === 'accepted') dismiss(); else installGuide();
   }
-  function notificationGate() {
+  async function notificationConfig() {
+    if (!configPromise) configPromise = api('config').catch(error => { configPromise = null; throw error; });
+    return configPromise;
+  }
+  function notificationUnavailable(message) {
+    show({ heading: 'Notification belum tersedia', text: message,
+      button: 'Semak semula', run: () => { configPromise = null; notificationGate(); },
+      alternative: 'Teruskan guna app', alternateRun: dismiss });
+    featureIcon('bell-off');
+  }
+  async function notificationGate() {
+    show({ heading: 'Semak notification', text: 'Menyemak sambungan notification...', button: null });
+    try {
+      const config = await notificationConfig();
+      if (!dialog.open || title.textContent !== 'Semak notification') return;
+      if (!config.pushReady) {
+        notificationUnavailable('Sambungan notification di server belum diaktifkan oleh admin. Ini bukan masalah tetapan telefon anda. Kalkulator masih boleh digunakan.'); return;
+      }
+      if (ios && !standalone()) { installGuide(); return; }
+      if (!('Notification' in window) || !('PushManager' in window) || !swReady) {
+        notificationUnavailable('Telefon atau browser ini belum menyokong notification. Buka app dari Home Screen dan gunakan versi terkini.'); return;
+      }
+      await swReady;
+      if (!dialog.open || title.textContent !== 'Semak notification') return;
+    } catch {
+      if (dialog.open && title.textContent === 'Semak notification') notificationUnavailable('Sambungan ke server notification terganggu. Semak internet dan cuba semula.');
+      return;
+    }
     show({ heading: 'Aktifkan notification', text: 'Terima hebahan Car Loan MY. Tekan butang di bawah, kemudian pilih Allow pada popup telefon.',
       button: 'On notification', run: enableNotifications, dismissible: false });
     featureIcon('bell-ring');
@@ -102,11 +129,12 @@
     const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
     return Uint8Array.from(atob(base64 + '='.repeat((4 - base64.length % 4) % 4)), c => c.charCodeAt(0));
   }
-  async function subscribe() {
-    const config = await (configPromise ||= api('config'));
+  async function subscribe(existingOnly = false) {
+    const config = await notificationConfig();
     if (!config.pushReady) throw new Error('Notification belum tersedia. Kalkulator masih boleh digunakan.');
     const registration = await swReady;
     let subscription = await registration.pushManager.getSubscription();
+    if (!subscription && existingOnly) return null;
     if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64Bytes(config.vapidPublicKey) });
     let deviceToken = storage.get('carloan-device-token');
     if (!deviceToken) { deviceToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join(''); storage.set('carloan-device-token', deviceToken); }
@@ -133,6 +161,7 @@
       }
       await subscribe();
       notificationAttempted = true; storage.set('carloan-notification-attempted', '1');
+      document.querySelector('#appNotice').hidden = true;
       locked = false; dialog.close(); checkAnnouncement();
     } catch (error) {
       configPromise = null;
@@ -204,10 +233,13 @@
   }
   notificationAttempted = storage.get('carloan-notification-attempted') === '1';
   if (standalone()) {
-    if (!('Notification' in window) || Notification.permission !== 'granted') {
-      if (!notificationAttempted) notificationGate();
-      else notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
-    } else subscribe().catch(() => notice('Langganan notification tidak dapat disegerakkan. Cuba semula dalam Tetapan app.'));
+    notificationConfig().then(async config => {
+      if (!config.pushReady) { notificationUnavailable('Sambungan notification di server belum diaktifkan oleh admin. Ini bukan masalah tetapan telefon anda. Kalkulator masih boleh digunakan.'); return; }
+      if (!('Notification' in window) || Notification.permission !== 'granted') {
+        if (!notificationAttempted) notificationGate();
+        else notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
+      } else if (!await subscribe(true)) notificationGate();
+    }).catch(() => notice('Sambungan server notification terganggu. Kalkulator masih boleh digunakan.'));
   } else installGuide();
   checkAnnouncement(new URLSearchParams(location.search).has('announcement'));
   announcementTimer = setInterval(() => { if (!document.hidden) checkAnnouncement(); }, 60000);

@@ -8,13 +8,14 @@ const iosUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKi
 const androidUA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36';
 const vapid = require('web-push').generateVAPIDKeys();
 let announcement = null;
+let pushReady = true;
 const subscriptions = [];
 const errors = [];
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/app') {
     res.setHeader('Content-Type', 'application/json');
-    if (url.searchParams.get('action') === 'config') return res.end(JSON.stringify({ ready: true, pushReady: true, vapidPublicKey: vapid.publicKey }));
+    if (url.searchParams.get('action') === 'config') return res.end(JSON.stringify({ ready: pushReady, pushReady, vapidPublicKey: pushReady ? vapid.publicKey : null }));
     if (url.searchParams.get('action') === 'announcement') return res.end(JSON.stringify({ announcement }));
     if (url.searchParams.get('action') === 'subscribe') { let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => { subscriptions.push(JSON.parse(body)); res.end('{"subscribed":true}'); }); return; }
     if (url.searchParams.get('action') === 'admin') { res.statusCode = 401; return res.end('{"error":"Sila login admin."}'); }
@@ -29,17 +30,18 @@ const server = http.createServer((req, res) => {
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
   fs.createReadStream(file).pipe(res);
 });
-async function mockInstalled(page, permission) {
-  await page.addInitScript(({ permission }) => {
+async function mockInstalled(page, permission, existing = true) {
+  await page.addInitScript(({ permission, existing }) => {
     Object.defineProperty(navigator, 'standalone', { value: true });
     window.permissionCalls = 0;
     Object.defineProperty(window, 'Notification', { value: { permission, requestPermission: async () => { window.permissionCalls++; return permission; } } });
     window.PushManager = function() {};
     const subscription = { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/test', keys: { p256dh: 'test', auth: 'test' } }), unsubscribe: async () => true };
-    const registration = { pushManager: { getSubscription: async () => subscription, subscribe: async () => subscription } };
+    window.subscriptionCalls = 0;
+    const registration = { pushManager: { getSubscription: async () => existing ? subscription : null, subscribe: async () => { window.subscriptionCalls++; return subscription; } } };
     const sw = new EventTarget(); sw.register = async () => registration; sw.ready = Promise.resolve(registration);
     Object.defineProperty(navigator, 'serviceWorker', { value: sw });
-  }, { permission });
+  }, { permission, existing });
 }
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -61,10 +63,14 @@ async function mockInstalled(page, permission) {
     assert.ok(await desktop.locator('#adminDashboard').isHidden());
     const ios = await pageFor(iosUA); await ios.goto(base);
     assert.equal(await ios.title(), 'Car Loan MY');
+    assert.equal(await ios.locator('#brandHeading').count(), 0);
+    assert.equal(await ios.locator('.estimate-banner').count(), 0);
     assert.equal(await ios.locator('.install-steps li').count(), 4);
     assert.match(await ios.locator('#dialogDescription').innerText(), /Safari/);
     await ios.screenshot({ path: '/tmp/car-loan-ios-install.png', animations: 'disabled' });
     await ios.locator('#dialogClose').click();
+    await ios.locator('.price-details summary').click();
+    assert.equal(await ios.locator('.price-details-label').evaluate(el => getComputedStyle(el).transform), 'none');
     for (const width of [320, 390, 430]) {
       await ios.setViewportSize({ width, height: 844 });
       assert.equal(await ios.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -82,6 +88,7 @@ async function mockInstalled(page, permission) {
     // Service worker really registers on the loopback secure context.
     await android.waitForFunction(async () => Boolean(await navigator.serviceWorker.getRegistration()));
     const denied = await pageFor(iosUA); await mockInstalled(denied, 'denied'); await denied.goto(base);
+    await denied.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
     assert.equal(await denied.locator('#dialogTitle').innerText(), 'Aktifkan notification');
     assert.equal(await denied.evaluate(() => window.permissionCalls), 0);
     await denied.locator('#dialogAction').click();
@@ -89,6 +96,22 @@ async function mockInstalled(page, permission) {
     await denied.locator('#dialogSecondary').click();
     assert.ok(await denied.locator('#appDialog').isHidden()); assert.ok(await denied.locator('#appNotice').isVisible());
     await denied.reload(); assert.ok(await denied.locator('#appDialog').isHidden());
+    pushReady = false;
+    const unavailable = await pageFor(iosUA); await mockInstalled(unavailable, 'granted'); await unavailable.goto(base);
+    await unavailable.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Notification belum tersedia');
+    assert.match(await unavailable.locator('#dialogDescription').innerText(), /bukan masalah tetapan telefon/);
+    assert.equal(await unavailable.locator('#dialogAction').innerText(), 'Semak semula');
+    assert.equal(await unavailable.evaluate(() => window.permissionCalls + window.subscriptionCalls), 0);
+    pushReady = true;
+    await unavailable.locator('#dialogAction').click();
+    await unavailable.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
+    await unavailable.locator('#dialogAction').click();
+    await unavailable.waitForFunction(() => !document.querySelector('#appDialog').open);
+    const firstSubscription = await pageFor(iosUA); await mockInstalled(firstSubscription, 'granted', false); await firstSubscription.goto(base);
+    await firstSubscription.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
+    assert.equal(await firstSubscription.evaluate(() => window.subscriptionCalls), 0);
+    await firstSubscription.locator('#dialogAction').click();
+    await firstSubscription.waitForFunction(() => window.subscriptionCalls === 1 && !document.querySelector('#appDialog').open);
     const granted = await pageFor(androidUA); await mockInstalled(granted, 'granted'); await granted.goto(base);
     await granted.waitForFunction(() => !document.querySelector('#appDialog').open);
     await granted.waitForTimeout(150);

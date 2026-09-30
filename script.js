@@ -151,7 +151,6 @@ function render() {
   customDepositInput.disabled = !custom;
   $("#customDepositWrap").hidden = !custom;
   ncdSelect.disabled = values.insuranceOption !== "with";
-  $("#brandHeading").textContent = values.brand.toUpperCase();
   $("#priceLabel").textContent = "Car Body Price";
   $("#priceStatus").textContent = (model.estimated ? "Harga anggaran" : "Disemak") + " · 30 Sep 2026" + (values.priceOverride ? " · Harga manual" : "");
   $("#priceSource").href = variant.source || model.source;
@@ -167,8 +166,6 @@ function render() {
   $("#insuranceNote").textContent = values.hasBodyPrice
     ? "Anggaran 3.3% daripada harga body sebelum rebate, selepas NCD. Bukan premium insurer sebenar; perlindungan tambahan tidak termasuk."
     : "Insurans 3.3% memerlukan harga body sah; harga OTR tidak dianggap sebagai harga body.";
-  $("#heroMonthly").textContent = valid ? money(values.selectedMonthly) : "Belum lengkap";
-  $("#heroModel").textContent = values.brand + " " + values.model + " · " + values.variant;
   $("#estimateTerms").textContent = values.loanPeriod + " years · " + percent(values.interestRate) + " p.a.";
   templateOutput.value = valid ? buildTemplate(values) : values.errors.join("\n");
   const summaries = { summaryOtr: values.otrTotal, summaryLoan: values.loanAfterDeposit, summaryDeposit: values.depositAmount };

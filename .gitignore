@@ -3,4 +3,5 @@ tmp/
 .vercel
 node_modules/
 .env*
+supabase/.temp/
 !.env.example

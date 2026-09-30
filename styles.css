@@ -63,7 +63,7 @@ h2{font-size:17px;margin:0}
 summary{min-height:54px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:650;list-style:none}
 summary::-webkit-details-marker{display:none}
 summary>span{font-size:22px;font-weight:400;color:var(--green)}
-details[open] summary>span{transform:rotate(45deg)}
+.template-details[open] summary>span{transform:rotate(45deg)}
 .template-wrap{padding-bottom:16px}
 .template-wrap>span{display:none}
 textarea{min-height:390px;padding:14px;line-height:1.65;white-space:pre-wrap;resize:vertical;font-size:13px}
@@ -141,7 +141,7 @@ legend{display:flex;align-items:center;gap:10px;font-size:17px}
 .price-details-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted)}
 .price-details-label svg{width:18px;height:18px;color:var(--green)}
 .price-details .price-provenance{margin:0;padding:0 0 14px;border:0}
-.price-details summary>span{transform:none}
+.price-details summary>.price-details-label{transform:none}
 .price-details[open] summary>svg{transform:rotate(180deg)}
 .form-grid{gap:18px 12px}
 label>span{font-size:13px}

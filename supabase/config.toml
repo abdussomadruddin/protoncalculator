@@ -1,0 +1,5 @@
+project_id = "car-loan-my"
+
+[auth]
+site_url = "https://protoncalculator.vercel.app/admin"
+additional_redirect_urls = ["https://protoncalculator.vercel.app/admin"]

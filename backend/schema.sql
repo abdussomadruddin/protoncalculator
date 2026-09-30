@@ -1,4 +1,11 @@
 -- Dedicated Car Loan MY project only. All data is private to the server API.
+begin;
+-- The dashboard's optional auto-RLS event trigger is not a public RPC.
+do $$ begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end $$;
 create table public.car_announcements (
   id uuid primary key default gen_random_uuid(),
   title text not null check (length(title) between 1 and 100),
@@ -81,3 +88,4 @@ returns jsonb language sql security invoker set search_path = '' as $$
 $$;
 revoke all on function public.car_register_subscription(text,text,jsonb), public.car_publish_announcement(text,text,text,text), public.car_claim_deliveries(uuid), public.car_delivery_summary(uuid) from public, anon, authenticated;
 grant execute on function public.car_register_subscription(text,text,jsonb), public.car_publish_announcement(text,text,text,text), public.car_claim_deliveries(uuid), public.car_delivery_summary(uuid) to service_role;
+commit;

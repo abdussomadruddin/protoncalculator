@@ -54,6 +54,11 @@ never used for permission checks.
 
 ## Release checks
 
+The dedicated project is `zioazzlxzksaxmndkulh`. CLI access, database schema,
+server-only credentials and production Auth redirects were configured on
+30 September 2026. Auth URL settings are declared in `supabase/config.toml`;
+other remote security settings are intentionally left unchanged.
+
 Run calculator regressions, mobile onboarding/UI tests and server auth tests.
 Verify configured API responses, direct database anon denial and RPC permissions.
 Then the owner must validate the actual email magic link and a push on at least
