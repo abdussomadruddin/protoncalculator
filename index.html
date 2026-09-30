@@ -2,38 +2,38 @@
 <html lang="ms">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#128c4a" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#087e68" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="1Click Loan" />
+    <meta name="apple-mobile-web-app-title" content="Car Loan MY" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="1Click Loan" />
-    <title>1Click Malaysia Car Loan Calculator</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=20260727" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260727" />
-    <link rel="manifest" href="/manifest.webmanifest?v=20260727" />
+    <meta name="application-name" content="Car Loan MY" />
+    <title>Car Loan MY</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=20260930" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260930" />
+    <link rel="manifest" href="/manifest.webmanifest?v=20260930" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <img class="app-logo" src="assets/icons/apple-touch-icon.png" alt="" width="48" height="48" />
+        <img class="app-logo" src="icon-192.png?v=20260930" alt="Car Loan MY" width="48" height="48" />
         <div>
           <p class="eyebrow" id="brandHeading">PROTON</p>
-          <h1>Loan Calculator</h1>
+          <h1>Car Loan MY</h1>
         </div>
-        <span class="header-tag">1Click</span>
+        <button class="icon-button" id="appMenuButton" type="button" title="Tetapan app" aria-label="Tetapan app"><i data-lucide="settings-2"></i></button>
       </header>
 
       <section class="estimate-banner" aria-label="Monthly estimate">
         <div><p class="estimate-label">Estimated monthly payment</p><div class="headline-payment"><strong id="heroMonthly">RM 0.00</strong><span>/ month</span></div><p id="heroModel" class="estimate-model"></p></div>
-        <a href="#loanSummary" class="estimate-link">View breakdown <span aria-hidden="true">↓</span></a>
+        <a href="#loanSummary" class="estimate-link">View breakdown <i data-lucide="arrow-down"></i></a>
       </section>
 
       <section class="workspace" aria-label="Malaysia car loan calculator">
         <form class="panel input-panel" id="loanForm">
           <fieldset>
-            <legend><span class="section-number">01</span> Car details</legend>
+            <legend><span class="section-icon coral"><i data-lucide="car-front"></i></span> Car details</legend>
 
             <div class="form-grid">
               <label class="full-width">
@@ -82,18 +82,21 @@
                 </div>
               </label>
             </div>
+            <details class="price-details">
+            <summary><span class="price-details-label"><i data-lucide="badge-check"></i> Harga & maklumat rasmi</span><i data-lucide="chevron-down"></i></summary>
             <div class="price-provenance">
               <div class="source-heading"><span id="priceStatus"></span><a id="priceSource" target="_blank" rel="noopener noreferrer">Pricelist rasmi</a></div>
               <p id="priceScope"></p>
               <p id="priceNote"></p>
               <p id="rebateNote"></p>
               <p id="interestNote"></p>
-              <label id="confirmationWrap" class="confirmation" hidden><input id="priceConfirmed" type="checkbox" /><span>Harga dan caj akhir telah disahkan dengan pengedar</span></label>
             </div>
+            </details>
+            <label id="confirmationWrap" class="confirmation" hidden><input id="priceConfirmed" type="checkbox" /><span>Harga dan caj akhir telah disahkan dengan pengedar</span></label>
           </fieldset>
 
           <fieldset>
-            <legend><span class="section-number">02</span> Insurance</legend>
+            <legend><span class="section-icon sky"><i data-lucide="shield-check"></i></span> Insurance</legend>
 
             <div class="segmented" role="radiogroup" aria-label="Insurance option">
               <label>
@@ -123,7 +126,7 @@
           </fieldset>
 
           <fieldset>
-            <legend><span class="section-number">03</span> Deposit & loan</legend>
+            <legend><span class="section-icon gold"><i data-lucide="wallet"></i></span> Deposit & loan</legend>
 
             <div class="segmented three" role="radiogroup" aria-label="Deposit option">
               <label>
@@ -168,7 +171,7 @@
         </form>
 
         <aside class="panel output-panel" id="loanSummary">
-          <div class="summary-heading"><h2>Your estimate</h2><span id="estimateTerms"></span></div>
+          <div class="summary-heading"><h2><i data-lucide="receipt-text"></i> Your estimate</h2><span id="estimateTerms"></span></div>
           <div class="summary-grid" aria-label="Loan summary">
             <div>
               <span>OTR</span>
@@ -211,15 +214,30 @@
           <div class="actions">
             <div class="copy-state" id="copyState" role="status" aria-live="polite">Ready</div>
             <button class="primary-action" id="copyButton" type="button">
+              <i data-lucide="copy"></i>
               <strong>Copy WhatsApp</strong>
             </button>
-            <button class="secondary-action" id="resetButton" type="button">Reset</button>
+            <button class="secondary-action icon-button" id="resetButton" type="button" title="Reset" aria-label="Reset"><i data-lucide="rotate-ccw"></i></button>
           </div>
         </aside>
       </section>
     </main>
 
+    <dialog id="appDialog" class="app-dialog" aria-labelledby="dialogTitle">
+      <div class="dialog-top"><img src="icon-192.png?v=20260930" alt="" width="56" height="56" /><button id="dialogClose" class="icon-button" type="button" title="Tutup" aria-label="Tutup"><i data-lucide="x"></i></button></div>
+      <p class="dialog-kicker">CAR LOAN MY</p>
+      <h2 id="dialogTitle"></h2>
+      <p id="dialogDescription"></p>
+      <div id="dialogContent"></div>
+      <p id="dialogStatus" class="dialog-status" role="status" aria-live="polite"></p>
+      <button id="dialogAction" class="primary-action" type="button"></button>
+      <button id="dialogSecondary" class="secondary-action" type="button" hidden></button>
+    </dialog>
+    <div id="appNotice" class="app-notice" role="status" hidden><i data-lucide="bell-off"></i><span></span><button class="icon-button" type="button" title="Tutup peringatan" aria-label="Tutup peringatan"><i data-lucide="x"></i></button></div>
+
+    <script src="assets/vendor/lucide.js"></script>
     <script src="catalog.js"></script>
     <script src="script.js"></script>
+    <script src="mobile.js"></script>
   </body>
 </html>

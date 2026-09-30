@@ -12,12 +12,13 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
 
 (async () => {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 Version/18.4 Mobile/15E148 Safari/604.1" });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   // Fixed snapshot date makes the promotion cutoff deterministic and testable.
   await page.clock.install({ time: new Date('2026-09-30T04:00:00Z') });
   await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
+  await page.locator("#dialogAction").click();
   const values = () => page.evaluate(() => calculateValues());
   const reset = () => page.locator('#resetButton').click();
   const select = async (brand, model, variant) => {
@@ -32,8 +33,8 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     assert.equal(v.loanPeriod, 9);
     assert.equal(v.rebate, 0);
     assert.equal(await page.inputValue('#rebate'), '');
-    near(v.insurance, 59800 * .03);
-    near(v.otrTotal, 59800 + 59800 * .03);
+    near(v.insurance, 59800 * .033);
+    near(v.otrTotal, 59800 + 59800 * .033);
     let variants = 0;
     for (const [brand, models] of Object.entries(catalog)) {
       assert.equal(new Set(models.map(m => m.name)).size, models.length);
@@ -58,13 +59,14 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
           assert.deepEqual(v.errors, []);
           near(v.otrTotal, variant.otrPrice);
           await page.locator('input[name="insuranceOption"][value="with"]').check();
-          v = await values(); near(v.insurance, variant.otrPrice * .03);
-          near(v.otrTotal, variant.otrPrice * 1.03);
+          v = await values(); near(v.insurance, variant.otrPrice * .033);
+          near(v.otrTotal, variant.otrPrice * 1.033);
           assert.deepEqual(v.errors, []);
           const text = await page.inputValue('#templateOutput');
           assert.ok(text.startsWith('*' + brand.toUpperCase() + ' LOAN ESTIMATE*'));
           assert.ok(!/\nRegistration:|Published accessories & registration|Official price snapshot:|Source:|Introductory offer:|Estimate only;|https:\/\//.test(text));
           assert.ok(!/NaN|undefined|Infinity/.test(text));
+          assert.ok(!text.includes("3.3%"));
           variants++;
         }
       }
@@ -88,16 +90,16 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     v = await values(); near(v.loanAfterDeposit, 0);
     await reset();
     await page.selectOption('#ncd', '55');
-    v = await values(); near(v.insurance, 59800 * .03 * .45);
+    v = await values(); near(v.insurance, 59800 * .033 * .45);
     await page.fill('#extras', '800');
-    v = await values(); near(v.insurance, 59800 * .03 * .45);
+    v = await values(); near(v.insurance, 59800 * .033 * .45);
     await page.fill('#rebate', '999999');
     assert.ok(await page.locator('#copyButton').isDisabled());
     await reset();
     await select('Perodua', 'Axia', '1.0L E (5MT)');
     assert.ok(await page.locator('#copyButton').isEnabled());
     assert.equal(await page.locator('#priceLabel').innerText(), 'Car Body Price');
-    v = await values(); near(v.otrTotal, 22000 * 1.03); assert.deepEqual(v.errors, []);
+    v = await values(); near(v.otrTotal, 22000 * 1.033); assert.deepEqual(v.errors, []);
     await page.locator('input[name="insuranceOption"][value="exclude"]').check();
     v = await values(); near(v.otrTotal, 22000);
     await select('Perodua', 'QV-E', 'Battery-as-a-Service (BaaS)');
@@ -128,6 +130,7 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.005
     await page.clock.setSystemTime(new Date('2026-10-01T04:00:00Z'));
     await reset();
     v = await values(); assert.equal(v.rebate, 0);
+    await page.locator('.price-details summary').click();
     assert.ok((await page.locator('#priceNote').innerText()).includes('Snapshot September'));
     assert.ok(!(await page.inputValue('#templateOutput')).includes('not for the current month'));
     assert.deepEqual(errors, []);

@@ -114,3 +114,93 @@ textarea{min-height:390px;padding:14px;line-height:1.65;white-space:pre-wrap;res
  .summary-heading{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Phone surfaces and install/onboarding dialogs share the same visual system. */
+:root{--bg:#f7f9fa;--accent:#087e68;--green:#087e68;--muted:#596973;--line:#dfe8e8}
+body{padding-top:env(safe-area-inset-top)}
+button,a,input,select,summary{-webkit-tap-highlight-color:transparent}
+svg{width:20px;height:20px;stroke-width:1.8;flex:none}
+.topbar{padding-bottom:6px}
+.app-logo{width:52px;height:52px;border-radius:8px}
+.eyebrow{font-size:10px;letter-spacing:0}
+h1{font-size:22px}
+.icon-button{width:46px;height:46px;min-height:46px;display:inline-flex;align-items:center;justify-content:center;flex:none;padding:0;border:1px solid var(--line);border-radius:8px;background:white;color:#45616a}
+.topbar>.icon-button{margin-left:auto}
+.estimate-banner{background:#e9f5ef;border:0;border-left:4px solid #087e68;padding:22px 18px;margin-bottom:28px}
+.headline-payment strong{color:#075e50;font-size:34px}
+.estimate-label{color:#355f56}
+.estimate-link{display:inline-flex;align-items:center;gap:8px}
+legend{display:flex;align-items:center;gap:10px;font-size:17px}
+.section-icon{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px}
+.coral{color:#b5444c;background:#ffe9ea}
+.sky{color:#22789b;background:#e1f3fa}
+.gold{color:#8f670b;background:#fff2c9}
+.summary-heading h2{display:flex;align-items:center;gap:8px}
+.summary-heading h2 svg{color:var(--green)}
+.price-details{border-bottom:1px solid var(--line);margin-top:16px}
+.price-details-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.price-details-label svg{width:18px;height:18px;color:var(--green)}
+.price-details .price-provenance{margin:0;padding:0 0 14px;border:0}
+.price-details summary>span{transform:none}
+.price-details[open] summary>svg{transform:rotate(180deg)}
+.form-grid{gap:18px 12px}
+label>span{font-size:13px}
+input,select{height:54px;border-color:#cfdddd}
+.money-field,.rate-field{border-color:#cfdddd}
+.money-field input,.rate-field input{height:52px}
+.segmented{background:#e8eeee}
+.segmented input:checked+span{color:#076754;box-shadow:0 2px 5px #17443912}
+.summary-grid>div:last-child{background:#def3e8;border-color:#abd2bd}
+.summary-grid>div:nth-child(4){background:#fff6d9;border-color:#e7d99f}
+.primary-action{display:flex;align-items:center;justify-content:center;gap:10px;min-height:54px;background:#087e68;border-color:#087e68}
+.primary-action:hover{background:#066c59}
+.primary-action:active,.icon-button:active,.secondary-action:active{transform:scale(.97)}
+button{transition:background .18s,transform .18s}
+.app-dialog{width:min(440px,calc(100% - 28px));max-height:calc(100dvh - 48px);padding:24px;border:1px solid var(--line);border-radius:8px;color:var(--ink);box-shadow:0 24px 80px #16383038;overflow:auto;animation:dialog-in .22s ease-out}
+.app-dialog::backdrop{background:#172a2f80;backdrop-filter:blur(5px)}
+.dialog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.dialog-top img{border-radius:8px}
+.dialog-kicker{font-size:11px;font-weight:800;color:var(--accent);margin:0 0 8px}
+.app-dialog h2{font-size:25px;line-height:1.2;margin-bottom:12px;overflow-wrap:anywhere}
+.app-dialog p{font-size:14px;line-height:1.65}
+#dialogDescription{color:var(--muted);margin:0 0 20px;white-space:pre-wrap;overflow-wrap:anywhere}
+.app-dialog>.primary-action,.app-dialog>.secondary-action{width:100%;margin-top:12px}
+.dialog-status{font-size:13px!important;color:#aa3545;margin:12px 0 0;overflow-wrap:anywhere}
+.dialog-status:empty{display:none}
+.install-steps{list-style:none;margin:0;padding:0;counter-reset:step}
+.install-steps li{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.5}
+.install-steps li:before{counter-increment:step;content:counter(step);width:28px;height:28px;display:grid;place-items:center;flex:none;font-weight:800;color:#076754;background:#e2f4ec;border-radius:50%}
+.install-steps li:nth-child(2):before{color:#b5444c;background:#ffe9ea}
+.install-steps li:nth-child(3):before{color:#22789b;background:#e1f3fa}
+.install-steps li:nth-child(4):before{color:#8f670b;background:#fff2c9}
+.dialog-feature-icon{width:64px;height:64px;margin:0 0 20px;border-radius:8px;background:#fff2c9;color:#8f670b;display:grid;place-items:center}
+.dialog-feature-icon svg{width:32px;height:32px}
+.dialog-menu{display:grid;gap:10px}
+.dialog-menu button,.dialog-menu a{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:14px;text-decoration:none;font-size:14px;text-align:left;min-height:50px}
+.dialog-menu svg{color:var(--green)}
+.app-notice{position:fixed;top:calc(12px + env(safe-area-inset-top));left:14px;right:14px;max-width:520px;margin:auto;background:#fff4d9;border:1px solid #e3cc8b;padding:12px;display:flex;align-items:center;gap:10px;z-index:30;border-radius:8px;box-shadow:0 6px 30px #2824141a;font-size:13px;line-height:1.5}
+.app-notice>span{flex:1}
+.app-notice .icon-button{width:36px;height:36px;min-height:36px;background:transparent;border:0}
+.estimate-banner,.section-icon{animation:surface-in .35s ease-out both}
+.headline-payment strong{transition:color .2s}
+@keyframes dialog-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes surface-in{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:540px){
+ .app-shell{padding:18px 18px calc(118px + env(safe-area-inset-bottom))}
+ .estimate-banner{margin-top:6px;padding:22px 16px}
+ .headline-payment strong{font-size:32px}
+ .estimate-label{font-size:13px}
+ .estimate-model{font-size:13px;line-height:1.5}
+ .topbar{gap:10px;margin-bottom:18px}
+ h1{font-size:21px}
+ .workspace{gap:30px}
+ fieldset+fieldset{border-top:1px solid var(--line);padding-top:24px;margin-top:24px}
+ .actions{padding:12px 18px calc(12px + env(safe-area-inset-bottom));align-items:center;gap:12px}
+ .actions>.icon-button{width:54px;height:54px}
+ .summary-grid strong{font-size:18px}
+ .summary-grid>div:nth-child(n+4){min-height:100px;padding:16px 12px;gap:10px}
+ .summary-grid>div:nth-child(n+4) strong{font-size:16px}
+ .price-provenance{font-size:12px}
+ .app-dialog{padding:22px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}

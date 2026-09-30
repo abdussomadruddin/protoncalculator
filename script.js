@@ -2,7 +2,7 @@ const DEFAULT_STATE = {
   brand: "Proton", model: "NEW S70 1.5 i-GT", variant: "Lite",
   insuranceOption: "with", ncd: 0, depositOption: "full", customDeposit: 0, loanPeriod: 9,
 };
-const INSURANCE_RATE = 0.03;
+const INSURANCE_RATE = 0.033;
 const BASE_COMPARISON_YEARS = 7;
 const $ = (selector) => document.querySelector(selector);
 const form = $("#loanForm");
@@ -132,7 +132,7 @@ function buildTemplate(values) {
   if (values.extras) lines.push("Additional colour / accessories: " + money(values.extras));
   if (values.insuranceOption === "with") {
     lines.push("", "Insurance base before rebate: " + money(values.insuranceBase),
-      "Estimated insurance (3%, " + percent(values.ncd) + " NCD): " + money(values.insurance));
+      "Estimated insurance (" + percent(values.ncd) + " NCD): " + money(values.insurance));
   } else lines.push("", "Insurance: Excluded");
   lines.push("OTR " + (values.insuranceOption === "with" ? "with" : "without") + " insurance: *" + money(values.otrTotal) + "*", "",
     "Deposit amount: " + money(values.depositAmount), "Loan after deposit: " + money(values.loanAfterDeposit), "",
@@ -165,8 +165,8 @@ function render() {
   $("#interestNote").textContent = "Default anggaran flat: bawah RM50k 3.00%, RM50k–99,999.99 2.50%, RM100k ke atas / EV 2.35%, komersial 3.50%. Bukan kadar terendah dijamin; ubah mengikut tawaran bank. Kadar effective/reducing balance tidak boleh dimasukkan sebagai kadar flat.";
   $("#confirmationWrap").hidden = !model.estimated && !model.needsConfirmation;
   $("#insuranceNote").textContent = values.hasBodyPrice
-    ? "Anggaran 3% daripada harga body sebelum rebate, selepas NCD. Bukan premium insurer sebenar; perlindungan tambahan tidak termasuk."
-    : "Insurans 3% memerlukan harga body sah; harga OTR tidak dianggap sebagai harga body.";
+    ? "Anggaran 3.3% daripada harga body sebelum rebate, selepas NCD. Bukan premium insurer sebenar; perlindungan tambahan tidak termasuk."
+    : "Insurans 3.3% memerlukan harga body sah; harga OTR tidak dianggap sebagai harga body.";
   $("#heroMonthly").textContent = valid ? money(values.selectedMonthly) : "Belum lengkap";
   $("#heroModel").textContent = values.brand + " " + values.model + " · " + values.variant;
   $("#estimateTerms").textContent = values.loanPeriod + " years · " + percent(values.interestRate) + " p.a.";
