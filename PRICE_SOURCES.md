@@ -11,19 +11,21 @@ Only officially offered Malaysian models in the current brand catalogs are inclu
 
 ## Important Exceptions
 
-- Perodua ICE models publish OTR, not body prices, in their current official calculator. Body prices are null, not inferred by deducting guessed fees. Insurance cannot be copied until a body price is supplied, or insurance is excluded.
-- NEW S70 Lite: body RM59,165, OTR RM59,800 before the RM3,000 introductory discount. The former app incorrectly used OTR as body.
-- Published OTR minus selling price includes required registration and standard accessories. This difference is included internally; no editable OTR Fee field has been restored.
-- Insurance remains the user's 3% estimate on original body before rebate, reduced by NCD. It is not an official insurer premium. Colour/accessory extras are not insured in this estimate. Commercial coverage needs an insurer quotation.
+- Per the user's updated definition, the app field labelled Body Price uses published retail/OTR without insurance for all 152 selections, not net selling price. Net selling prices are preserved separately as sellingPrice for audit.
+- NEW S70 Lite uses RM59,800 retail without insurance, not RM59,165 net selling price. All rebates now default to an empty input, including previously verified introductory offers; blank is treated as zero only for arithmetic.
+- Retail/OTR already includes required registration and standard accessories. No registration/accessory fee is added again, and the Published accessories & registration line is removed from WhatsApp text.
+- WhatsApp includes only the selected loan tenure and its monthly instalment, not a separate 7-year comparison. Battery leasing remains a separately identified monthly obligation where applicable.
+- Insurance is the user's 3% estimate on the retail-based Body Price before rebate, reduced by NCD. It is not an official insurer premium. Colour/accessory extras are not insured in this estimate. Commercial coverage needs an insurer quotation.
 - QV-E: current price PDF effective 15 September supersedes the earlier June news release. BaaS body RM69,551 / retail RM69,999; full purchase body RM93,551 / OTR RM93,999. Current special rebate RM16,500; resulting acquisition prices RM53,499 and RM77,499. BaaS adds RM215 monthly for 108 months, separately from the car loan.
 - Toyota Hiace Panel Van: the manufacturer only provides Company Commercial pricing in the current PDF. This exception is displayed explicitly; it is not labelled private individual.
 - Honda City Hatchback: the official plate row is RM150, but published retail minus selling is RM340 rather than RM440. Published selling and retail totals are preserved without double-charging the conflicting row.
 - Jetour T1: source explicitly says Estimated Price List. Copy requires dealer price confirmation.
 - Jetour T2 i-DM: the PM-linked PDF table says East Malaysia while its footer covers both regions. Price and charges require dealer confirmation before copy.
 - Chery Tiggo Cross Sport Edition is announced for launch next month; no official price is supplied as of this snapshot. No price has been invented. [Official announcement](https://www.chery.my/2026/09/29/chery-malaysia-gives-a-sneak-peek-at-the-upcoming-chery-tiggo-cross-sports-edition/).
-- Rebates default to zero unless an exact introductory price difference is verified in the current official model page/PDF. Zero means no rebate entered, not no promotion. Conditional trade-in/loyalty offers and “up to” amounts are not applied universally.
-- Automatic introductory rebates have a verification cutoff of 30 September 2026, not an asserted manufacturer expiry. From 1 October they fall back to manual zero until reverified. The app warns when the snapshot is not the current month. Source, registration, snapshot and advisory metadata are kept in the app, not appended to the customer-facing WhatsApp template.
-- Default brand/model/variant remain Proton / NEW S70 1.5 i-GT / Lite. Default interest remains 2.35%, flat estimate; actual bank product eligibility and rate may differ.
+- Rebates are always blank on model/variant changes and reset. Historical verified introductory offer metadata is retained in the catalog for audit but is not auto-applied. Conditional trade-in/loyalty offers and “up to” amounts are not applied universally.
+- The app warns when the price snapshot is not the current month. Source, registration, snapshot and advisory metadata are kept in the app, not appended to the customer-facing WhatsApp template.
+- Default brand/model/variant remain Proton / NEW S70 1.5 i-GT / Lite. Default interest is an editable application estimation policy: below RM50,000 3.00%, RM50,000 to RM99,999.99 2.50%, RM100,000+ 2.35%; EV 2.35%, Company Commercial 3.50%. Category overrides take precedence over price. NEW S70 Lite therefore defaults to 2.50%. These are not bank-published price tiers and must not be described as guaranteed lowest rates.
+- Interest policy applies on model/variant changes and retail-price edits until the interest field is manually overridden. Changing tenure/deposit does not discard a manual rate. Actual bank rate and method must be confirmed. Current official bank pages distinguish effective/reducing-balance rates from flat estimates; do not enter an effective rate into the flat calculator. [CIMB rates](https://www.cimb.com.my/en/personal/help-support/rates-charges/interest-rates-charges/interest-rates/car-loans.html), [Maybank Hire Purchase](https://www.maybank2u.com.my/maybank2u/malaysia/en/personal/loans/hire_purchase/hire_purchase.page).
 
 ## Verification
 
@@ -39,7 +41,7 @@ node tests/calculator.cjs
 
 ## Price Register
 
-Amounts below are RM, exclude insurance, and precede any rebate. A dash means body price is not published in the source used.
+Amounts below are RM, exclude insurance, and precede any rebate. The historical Body / Selling column records published net selling price; the app Body Price uses the OTR excl. insurance column for every selection. A dash means net selling price is not published in the source used.
 
 | Brand | Model | Variant | Body / Selling | OTR excl. insurance | Source effective date | Registration | Official source |
 | --- | --- | --- | ---: | ---: | --- | --- | --- |

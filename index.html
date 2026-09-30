@@ -70,7 +70,7 @@
                 <span>Rebate</span>
                 <div class="money-field">
                   <span>RM</span>
-                  <input id="rebate" name="rebate" type="number" min="0" step="0.01" value="0" inputmode="decimal" />
+                  <input id="rebate" name="rebate" type="number" min="0" step="0.01" inputmode="decimal" />
                 </div>
               </label>
 
@@ -87,6 +87,7 @@
               <p id="priceScope"></p>
               <p id="priceNote"></p>
               <p id="rebateNote"></p>
+              <p id="interestNote"></p>
               <label id="confirmationWrap" class="confirmation" hidden><input id="priceConfirmed" type="checkbox" /><span>Harga dan caj akhir telah disahkan dengan pengedar</span></label>
             </div>
           </fieldset>
@@ -106,10 +107,6 @@
             </div>
 
             <div class="form-grid single">
-              <label id="insuranceBodyWrap" class="full-width" hidden>
-                <span>Harga body sah untuk insurance</span>
-                <div class="money-field"><span>RM</span><input id="insuranceBodyPrice" type="number" min="0.01" step="0.01" inputmode="decimal" /></div>
-              </label>
               <label>
                 <span>Insurance NCD</span>
                 <select id="ncd" name="ncd">

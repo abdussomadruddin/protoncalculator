@@ -1,5 +1,5 @@
 const DEFAULT_STATE = {
-  brand: "Proton", model: "NEW S70 1.5 i-GT", variant: "Lite", interestRate: 2.35,
+  brand: "Proton", model: "NEW S70 1.5 i-GT", variant: "Lite",
   insuranceOption: "with", ncd: 0, depositOption: "full", customDeposit: 0, loanPeriod: 9,
 };
 const INSURANCE_RATE = 0.03;
@@ -17,8 +17,17 @@ const ncdSelect = $("#ncd");
 const customDepositInput = $("#customDeposit");
 const loanPeriodSelect = $("#loanPeriod");
 const templateOutput = $("#templateOutput");
-const insuranceBodyInput = $("#insuranceBodyPrice");
 let statusTimer = null;
+let interestRateManual = false;
+
+// Editable flat-rate estimation policy, not a bank quote or guaranteed minimum rate.
+function getDefaultInterestRate(price, model = getSelectedModel()) {
+  if (model.registration === "Company Commercial") return 3.5;
+  if (model.powertrain === "EV") return 2.35;
+  if (price < 50000) return 3;
+  if (price < 100000) return 2.5;
+  return 2.35;
+}
 
 function money(value) {
   return "RM " + Number(value || 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,9 +51,6 @@ function getSelectedVariant() {
 function localDate() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
-function offerIsCurrent(offer) {
-  return offer && localDate() <= offer.verifiedThrough;
-}
 function fillOptions(select, options, preferred) {
   select.replaceChildren(...options.map((value) => new Option(value, value)));
   if (options.includes(preferred)) select.value = preferred;
@@ -58,12 +64,12 @@ function populateVariants(preferred = "") {
   updatePriceFromVariant();
 }
 function updatePriceFromVariant() {
-  const model = getSelectedModel();
   const variant = getSelectedVariant();
-  bodyPriceInput.value = variant.bodyPrice ?? variant.otrPrice;
-  rebateInput.value = offerIsCurrent(model.rebate) ? model.rebate.amount : 0;
+  bodyPriceInput.value = variant.bodyPrice;
+  rebateInput.value = "";
+  interestRateManual = false;
+  interestRateInput.value = getDefaultInterestRate(variant.bodyPrice);
   extrasInput.value = 0;
-  insuranceBodyInput.value = "";
   $("#priceConfirmed").checked = false;
 }
 function calculateMonthly(principal, annualRate, years) {
@@ -81,7 +87,7 @@ function getDepositLabel() {
 function calculateValues() {
   const model = getSelectedModel();
   const variant = getSelectedVariant();
-  const hasBodyPrice = variant.bodyPrice !== null;
+  const hasBodyPrice = true;
   const inputPrice = Math.max(readNumber(bodyPriceInput), 0);
   const rebate = Math.max(readNumber(rebateInput), 0);
   const extras = Math.max(readNumber(extrasInput), 0);
@@ -89,10 +95,9 @@ function calculateValues() {
   const insuranceOption = getCheckedValue("insuranceOption");
   const ncd = Math.min(Math.max(Number(ncdSelect.value) || 0, 0), 100);
   const loanPeriod = Number(loanPeriodSelect.value) || DEFAULT_STATE.loanPeriod;
-  // OTR minus selling price includes published mandatory accessories and registration.
-  // OTR-only prices already include those charges, so never add them a second time.
-  const includedCharges = hasBodyPrice ? Math.round((variant.otrPrice - variant.bodyPrice) * 100) / 100 : 0;
-  const insuranceBase = hasBodyPrice ? inputPrice : Math.max(readNumber(insuranceBodyInput), 0);
+  // Retail/OTR already includes published fees; do not add them again.
+  const includedCharges = 0;
+  const insuranceBase = inputPrice;
   const priceAfterRebate = Math.max(inputPrice - rebate, 0);
   const insurance = insuranceOption === "with" ? insuranceBase * INSURANCE_RATE * (1 - ncd / 100) : 0;
   const otrTotal = priceAfterRebate + includedCharges + extras + insurance;
@@ -101,9 +106,6 @@ function calculateValues() {
   const errors = [];
   if (!form.checkValidity() || inputPrice <= 0) errors.push("Sila lengkapkan harga dan nilai input yang sah.");
   if (rebate > inputPrice) errors.push("Rebate tidak boleh melebihi harga kereta.");
-  if (insuranceOption === "with" && !hasBodyPrice && insuranceBase <= 0) {
-    errors.push("Harga body tidak diterbitkan dalam sumber ini. Masukkan harga body sah untuk insurance 3%, atau pilih Exclude insurance.");
-  }
   if ((model.estimated || model.needsConfirmation) && !$("#priceConfirmed").checked) {
     errors.push("Sahkan harga dan caj akhir dengan pengedar sebelum salin quotation.");
   }
@@ -115,20 +117,18 @@ function calculateValues() {
     baseMonthly: calculateMonthly(loanAfterDeposit, interestRate, BASE_COMPARISON_YEARS),
     selectedMonthly: calculateMonthly(loanAfterDeposit, interestRate, loanPeriod),
     batteryMonthly: variant.batteryMonthly || 0, errors,
-    priceOverride: inputPrice !== (variant.bodyPrice ?? variant.otrPrice),
+    priceOverride: inputPrice !== variant.bodyPrice,
   };
 }
 function buildTemplate(values) {
   const { variantData: variant } = values;
-  const paymentLines = [values.depositLabel + ", 7 years: *" + money(values.baseMonthly) + "/month*"];
-  if (values.loanPeriod !== 7) paymentLines.push(values.depositLabel + ", " + values.loanPeriod + " years: *" + money(values.selectedMonthly) + "/month*");
+  const paymentLines = [values.depositLabel + ", " + values.loanPeriod + " years: *" + money(values.selectedMonthly) + "/month*"];
   const lines = [
     "*" + values.brand.toUpperCase() + " LOAN ESTIMATE*", "",
     "Model: " + values.model, "Variant: " + values.variant, "",
     (values.hasBodyPrice ? "Body price" : "OTR price (without insurance)") + ": " + money(values.inputPrice),
     "Rebate: " + money(values.rebate), "Price after rebate: " + money(values.priceAfterRebate),
   ];
-  if (values.includedCharges) lines.push("Published accessories & registration: " + money(values.includedCharges));
   if (values.extras) lines.push("Additional colour / accessories: " + money(values.extras));
   if (values.insuranceOption === "with") {
     lines.push("", "Insurance base before rebate: " + money(values.insuranceBase),
@@ -151,21 +151,18 @@ function render() {
   customDepositInput.disabled = !custom;
   $("#customDepositWrap").hidden = !custom;
   ncdSelect.disabled = values.insuranceOption !== "with";
-  insuranceBodyInput.disabled = values.hasBodyPrice || values.insuranceOption !== "with";
-  $("#insuranceBodyWrap").hidden = insuranceBodyInput.disabled;
   $("#brandHeading").textContent = values.brand.toUpperCase();
-  $("#priceLabel").textContent = values.hasBodyPrice ? "Car Body Price" : "OTR (excl. insurance)";
+  $("#priceLabel").textContent = "Car Body Price";
   $("#priceStatus").textContent = (model.estimated ? "Harga anggaran" : "Disemak") + " · 30 Sep 2026" + (values.priceOverride ? " · Harga manual" : "");
   $("#priceSource").href = variant.source || model.source;
   $("#priceScope").textContent = "Semenanjung Malaysia · " + (model.registration || "Individu persendirian") + (model.powertrain ? " · " + model.powertrain : "");
   $("#priceNote").textContent = [
-    !values.hasBodyPrice ? "Sumber rasmi menerbitkan OTR sahaja, bukan harga body." : "OTR rasmi tanpa insurance: " + money(variant.otrPrice) + ". Caj diterbitkan: " + money(values.includedCharges) + ".",
+    "Body Price menggunakan retail/OTR tanpa insurance: " + money(variant.otrPrice) + ". Caj standard sudah termasuk; tidak ditambah lagi.",
     model.paintNote, model.note,
     localDate().slice(0, 7) !== CATALOG_CHECKED_AT.slice(0, 7) ? "Snapshot September 2026. Harga bulan semasa perlu disemak semula." : "",
   ].filter(Boolean).join(" ");
-  $("#rebateNote").textContent = offerIsCurrent(model.rebate)
-    ? money(model.rebate.amount) + " harga pengenalan. Tertakluk syarat dan stok; disemak 30 Sep 2026."
-    : "Rebate manual. RM0 bermaksud tiada rebate dimasukkan, bukan pengesahan tiada promosi.";
+  $("#rebateNote").textContent = "Rebate manual; kosong bermaksud tiada rebate dimasukkan.";
+  $("#interestNote").textContent = "Default anggaran flat: bawah RM50k 3.00%, RM50k–99,999.99 2.50%, RM100k ke atas / EV 2.35%, komersial 3.50%. Bukan kadar terendah dijamin; ubah mengikut tawaran bank. Kadar effective/reducing balance tidak boleh dimasukkan sebagai kadar flat.";
   $("#confirmationWrap").hidden = !model.estimated && !model.needsConfirmation;
   $("#insuranceNote").textContent = values.hasBodyPrice
     ? "Anggaran 3% daripada harga body sebelum rebate, selepas NCD. Bukan premium insurer sebenar; perlindungan tambahan tidak termasuk."
@@ -216,7 +213,6 @@ function resetDefaults() {
   brandSelect.value = DEFAULT_STATE.brand;
   populateModels(DEFAULT_STATE.model);
   populateVariants(DEFAULT_STATE.variant);
-  interestRateInput.value = DEFAULT_STATE.interestRate;
   ncdSelect.value = String(DEFAULT_STATE.ncd);
   customDepositInput.value = DEFAULT_STATE.customDeposit;
   loanPeriodSelect.value = String(DEFAULT_STATE.loanPeriod);
@@ -229,6 +225,10 @@ modelSelect.addEventListener("change", () => { populateVariants(); render(); });
 variantSelect.addEventListener("change", () => { updatePriceFromVariant(); render(); });
 // Selects dispatch input before change; their dependent options are not rebuilt yet.
 form.addEventListener("input", (event) => {
+  if (event.target === interestRateInput) interestRateManual = true;
+  if (event.target === bodyPriceInput && !interestRateManual) {
+    interestRateInput.value = getDefaultInterestRate(readNumber(bodyPriceInput));
+  }
   if (![brandSelect, modelSelect, variantSelect].includes(event.target)) render();
 });
 form.addEventListener("change", render);

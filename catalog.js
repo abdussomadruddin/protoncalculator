@@ -1,11 +1,11 @@
 // Snapshot of official Malaysian sources checked on 30 September 2026.
-// Rows: variant, published selling/body price (null if unpublished), OTR excluding insurance.
+// Rows preserve published selling prices for audit; app Body Price uses retail/OTR excluding insurance.
 const CATALOG_CHECKED_AT = "2026-09-30";
 function catalogModel(name, source, rows, options = {}) {
   return {
     name, source, checkedAt: CATALOG_CHECKED_AT, ...options,
-    variants: rows.map(([name, bodyPrice, otrPrice, extra = {}]) => ({
-      name, bodyPrice, otrPrice, ...extra,
+    variants: rows.map(([name, sellingPrice, otrPrice, extra = {}]) => ({
+      name, sellingPrice, bodyPrice: otrPrice, otrPrice, ...extra,
     })),
   };
 }
