@@ -13,6 +13,7 @@
 !api
 !api/app.js
 !catalog.js
+!rebates.js
 !manifest.webmanifest
 !favicon.png
 !apple-touch-icon.png
