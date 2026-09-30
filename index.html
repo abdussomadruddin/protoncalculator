@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#128c4a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Proton Loan" />
+    <meta name="apple-mobile-web-app-title" content="1Click Loan" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="Proton Loan" />
-    <title>Proton Loan Calculator</title>
+    <meta name="application-name" content="1Click Loan" />
+    <title>1Click Malaysia Car Loan Calculator</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=20260727" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260727" />
     <link rel="manifest" href="/manifest.webmanifest?v=20260727" />
@@ -19,7 +19,7 @@
       <header class="topbar">
         <img class="app-logo" src="assets/icons/apple-touch-icon.png" alt="" width="48" height="48" />
         <div>
-          <p class="eyebrow">PROTON</p>
+          <p class="eyebrow" id="brandHeading">PROTON</p>
           <h1>Loan Calculator</h1>
         </div>
         <span class="header-tag">1Click</span>
@@ -30,12 +30,16 @@
         <a href="#loanSummary" class="estimate-link">View breakdown <span aria-hidden="true">↓</span></a>
       </section>
 
-      <section class="workspace" aria-label="Proton loan calculator">
+      <section class="workspace" aria-label="Malaysia car loan calculator">
         <form class="panel input-panel" id="loanForm">
           <fieldset>
             <legend><span class="section-number">01</span> Car details</legend>
 
             <div class="form-grid">
+              <label class="full-width">
+                <span>Brand</span>
+                <select id="brandSelect" name="brand"></select>
+              </label>
               <label>
                 <span>Model</span>
                 <select id="modelSelect" name="model"></select>
@@ -47,10 +51,18 @@
               </label>
 
               <label>
-                <span>Car Body Price</span>
+                <span id="priceLabel">Car Body Price</span>
                 <div class="money-field">
                   <span>RM</span>
-                  <input id="bodyPrice" name="bodyPrice" type="number" min="0" step="100" inputmode="decimal" />
+                  <input id="bodyPrice" name="bodyPrice" type="number" min="0.01" step="0.01" required inputmode="decimal" />
+                </div>
+              </label>
+
+              <label>
+                <span>Warna / aksesori tambahan</span>
+                <div class="money-field">
+                  <span>RM</span>
+                  <input id="extras" name="extras" type="number" min="0" step="0.01" value="0" inputmode="decimal" />
                 </div>
               </label>
 
@@ -58,7 +70,7 @@
                 <span>Rebate</span>
                 <div class="money-field">
                   <span>RM</span>
-                  <input id="rebate" name="rebate" type="number" min="0" step="100" value="0" inputmode="decimal" />
+                  <input id="rebate" name="rebate" type="number" min="0" step="0.01" value="0" inputmode="decimal" />
                 </div>
               </label>
 
@@ -69,6 +81,13 @@
                   <span>%</span>
                 </div>
               </label>
+            </div>
+            <div class="price-provenance">
+              <div class="source-heading"><span id="priceStatus"></span><a id="priceSource" target="_blank" rel="noopener noreferrer">Pricelist rasmi</a></div>
+              <p id="priceScope"></p>
+              <p id="priceNote"></p>
+              <p id="rebateNote"></p>
+              <label id="confirmationWrap" class="confirmation" hidden><input id="priceConfirmed" type="checkbox" /><span>Harga dan caj akhir telah disahkan dengan pengedar</span></label>
             </div>
           </fieldset>
 
@@ -87,6 +106,10 @@
             </div>
 
             <div class="form-grid single">
+              <label id="insuranceBodyWrap" class="full-width" hidden>
+                <span>Harga body sah untuk insurance</span>
+                <div class="money-field"><span>RM</span><input id="insuranceBodyPrice" type="number" min="0.01" step="0.01" inputmode="decimal" /></div>
+              </label>
               <label>
                 <span>Insurance NCD</span>
                 <select id="ncd" name="ncd">
@@ -99,6 +122,7 @@
                 </select>
               </label>
             </div>
+            <p class="field-note" id="insuranceNote"></p>
           </fieldset>
 
           <fieldset>
@@ -124,7 +148,7 @@
                 <span>Custom Deposit</span>
                 <div class="money-field">
                   <span>RM</span>
-                  <input id="customDeposit" name="customDeposit" type="number" min="0" step="100" value="0" inputmode="decimal" />
+                  <input id="customDeposit" name="customDeposit" type="number" min="0" step="0.01" value="0" inputmode="decimal" />
                 </div>
               </label>
 
@@ -171,6 +195,13 @@
             </div>
           </div>
 
+          <div class="battery-summary" id="batterySummary" hidden>
+            <div><span>Sewaan bateri</span><strong id="batteryMonthly"></strong></div>
+            <div><span>Loan + bateri / bulan</span><strong id="combinedMonthly"></strong></div>
+            <p id="batteryNote"></p>
+          </div>
+          <p class="validation-note" id="validationNote" role="status" hidden></p>
+
           <details class="template-details">
           <summary>WhatsApp template <span aria-hidden="true">+</span></summary>
           <label class="template-wrap">
@@ -178,7 +209,7 @@
             <textarea id="templateOutput" readonly spellcheck="false"></textarea>
           </label>
           </details>
-          <p class="estimate-note">Anggaran sahaja. Tertakluk kepada kelulusan dan kadar bank.</p>
+          <p class="estimate-note">Anggaran kadar flat sahaja, bukan quotation atau tawaran bank. Tertakluk kelulusan pembiayaan dan sebut harga insurer.</p>
 
           <div class="actions">
             <div class="copy-state" id="copyState" role="status" aria-live="polite">Ready</div>
@@ -191,6 +222,7 @@
       </section>
     </main>
 
+    <script src="catalog.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

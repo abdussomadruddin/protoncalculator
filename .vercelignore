@@ -1,0 +1,17 @@
+*
+!index.html
+!styles.css
+!script.js
+!catalog.js
+!manifest.webmanifest
+!favicon.png
+!apple-touch-icon.png
+!icon-192.png
+!icon-512.png
+!assets/
+!assets/icons/
+!assets/icons/app-icon.png
+!assets/icons/apple-touch-icon.png
+!assets/icons/favicon-32.png
+!assets/icons/icon-192.png
+!assets/icons/icon-512.png

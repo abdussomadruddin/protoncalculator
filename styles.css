@@ -76,6 +76,23 @@ textarea{min-height:390px;padding:14px;line-height:1.65;white-space:pre-wrap;res
 .copy-state{position:absolute;bottom:calc(100% + 8px);right:0;font-size:13px;border-radius:6px;padding:8px 12px;opacity:0;pointer-events:none}
 .copy-state.success{opacity:1;background:#14613d;color:#fff}
 .copy-state.error{opacity:1;background:#a71631;color:#fff}
+.form-grid>.full-width{grid-column:1/-1}
+.price-provenance{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;font-size:12px;line-height:1.6;color:var(--muted)}
+.source-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:650}
+.source-heading a{color:var(--green);text-underline-offset:3px}
+.price-provenance p,.field-note{margin:8px 0 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.price-provenance p:empty{display:none}
+.confirmation{display:flex;align-items:start;gap:10px;margin-top:14px}
+.confirmation input{width:20px;height:20px;flex:none;margin:0;accent-color:var(--green)}
+.confirmation span{line-height:1.5}
+.field-note{color:var(--muted)}
+.validation-note{font-size:13px;line-height:1.6;color:#a71631;border-left:3px solid #a71631;padding-left:12px}
+.battery-summary{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.battery-summary>div{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:12px}
+.battery-summary strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+.battery-summary p{font-size:12px;line-height:1.6;color:var(--muted)}
+.primary-action:disabled{background:#67717a;border-color:#67717a;cursor:not-allowed}
+.estimate-model{overflow-wrap:anywhere}
 @media(max-width:900px){
  .workspace{grid-template-columns:1fr;gap:32px}
  .app-shell{max-width:680px;padding:24px}
