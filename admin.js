@@ -41,6 +41,26 @@
     finally { busy = false; document.querySelectorAll('button').forEach(button => { button.disabled = button.dataset.unavailable === 'true'; }); }
   }
   function showLogin() { $('#loginSection').hidden = false; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true; }
+  async function loadStats() {
+    $('#statsStatus').textContent = 'Memuatkan statistik...';
+    try {
+      const data = await api('stats');
+      for (const period of data.traffic) {
+        if (![1, 7, 30].includes(period.days)) continue;
+        $('#visits' + period.days).textContent = Number(period.visits).toLocaleString('ms-MY');
+        $('#devices' + period.days).textContent = Number(period.devices).toLocaleString('ms-MY') + ' peranti unik';
+      }
+      $('#notificationCount').textContent = Number(data.notifications).toLocaleString('ms-MY');
+      $('#phoneAppCount').textContent = Number(data.phoneApps).toLocaleString('ms-MY');
+      $('#phonePushCount').textContent = Number(data.phoneAppsWithNotifications).toLocaleString('ms-MY');
+      $('#statsStatus').textContent = data.startedAt ? 'Data sejak ' + new Date(data.startedAt).toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' }) : 'Belum ada trafik direkodkan.';
+    } catch (error) {
+      for (const id of ['visits1', 'visits7', 'visits30', 'notificationCount', 'phoneAppCount', 'phonePushCount']) $('#' + id).textContent = '—';
+      for (const days of [1, 7, 30]) $('#devices' + days).textContent = '';
+      $('#statsStatus').textContent = 'Statistik tidak tersedia. ' + error.message;
+      if (error.status === 401) showLogin();
+    }
+  }
   function preview(title, message, link, label) {
     $('#adminDialogTitle').textContent = title; $('#adminDialogMessage').textContent = message;
     const a = $('#previewLink'); a.hidden = true; a.removeAttribute('href');
@@ -77,6 +97,7 @@
       row.append(badge, heading, text, date, controls); list.append(row);
     }
     icons();
+    await loadStats();
   }
   $('#loginForm').onsubmit = event => { event.preventDefault(); task(async () => {
     try { await api('login', { email: $('#adminEmail').value.trim(), password: $('#adminPassword').value }); await load(); status('Login berjaya.'); }
@@ -102,6 +123,7 @@
   $('#previewButton').onclick = () => { try { preview($('#announcementTitle').value || 'Tajuk hebahan', $('#announcementMessage').value || 'Mesej hebahan', $('#announcementLink').value.trim(), $('#announcementLabel').value); } catch (error) { status(error.message); } };
   $('#adminDialogClose').onclick = () => $('#adminDialog').close();
   $('#refreshButton').onclick = () => task(async () => { await load(); status('Rekod dikemas kini.'); });
+  $('#statsRefresh').onclick = () => task(loadStats);
   $('#logoutButton').onclick = () => task(async () => { await api('logout', {}); showLogin(); status('Anda telah logout.'); });
   icons();
   task(async () => {

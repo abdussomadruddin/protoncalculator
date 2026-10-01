@@ -169,6 +169,7 @@
       await api('subscribe', { subscription: subscription.toJSON(), deviceToken });
     }
     notificationSynced = true;
+    dispatchEvent(new Event('carloan-notification-synced'));
     return subscription;
   }
   async function enableNotifications() {

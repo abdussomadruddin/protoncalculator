@@ -22,6 +22,28 @@ test('unauthenticated visitors cannot publish, deactivate, send, or read admin d
     const res = await request(action, { method: 'POST', body: {} }); assert.equal(res.code, 401);
   }
   assert.equal((await request('admin')).code, 401);
+  assert.equal((await request('stats')).code, 401);
+});
+test('activity validates input, hashes identifiers and never returns aggregate data publicly', async () => {
+  const body = { deviceToken: 'a'.repeat(64), sessionToken: 'b'.repeat(64), phoneApp: true, permission: 'granted' };
+  assert.equal((await request('activity', { method: 'POST', body: { ...body, permission: 'invalid' } })).code, 400);
+  assert.equal((await request('activity', { method: 'POST', body, origin: 'https://evil.test' })).code, 403);
+  global.fetch = async (url, options) => {
+    assert.ok(url.endsWith('/rpc/car_record_activity'));
+    const payload = JSON.parse(options.body);
+    assert.notEqual(payload.device_hash, body.deviceToken); assert.equal(payload.phone_app, true);
+    return new Response('true');
+  };
+  assert.deepEqual((await request('activity', { method: 'POST', body })).data, { recorded: true });
+});
+test('only authenticated admin can retrieve aggregated statistics', async () => {
+  global.fetch = async url => {
+    if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ email: process.env.ADMIN_EMAIL, email_confirmed_at: '2026-09-30' }));
+    assert.ok(url.endsWith('/rpc/car_admin_stats'));
+    return new Response(JSON.stringify({ traffic: [], notifications: 5 }));
+  };
+  const response = await request('stats', { cookie: '__Host-carloan-admin=valid.jwt.token' });
+  assert.equal(response.code, 200); assert.equal(response.data.notifications, 5);
 });
 test('cross-origin writes and wrong admin email denied before upstream work', async () => {
   assert.equal((await request('publish', { method: 'POST', origin: 'https://evil.example', body: {} })).code, 403);

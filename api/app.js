@@ -123,6 +123,15 @@ module.exports = async function handler(req, res) {
       const { data } = await supabase('/rest/v1/car_announcements?active=eq.true&select=id,title,message,link_url,link_label&order=created_at.desc&limit=1');
       return res.status(200).json({ announcement: data[0] || null });
     }
+    if (action === 'activity') {
+      requirePost(req);
+      if (!/^[a-f0-9]{64}$/.test(body.deviceToken || '') || (body.sessionToken !== null && !/^[a-f0-9]{64}$/.test(body.sessionToken || '')) || typeof body.phoneApp !== 'boolean' || !['granted', 'denied', 'default', 'unsupported'].includes(body.permission)) fail(400, 'Data aktiviti tidak sah.');
+      await supabase('/rest/v1/rpc/car_record_activity', { method: 'POST', body: {
+        device_hash: hash(body.deviceToken), visit_hash: body.sessionToken ? hash(body.sessionToken) : null,
+        phone_app: body.phoneApp, notification_permission: body.permission,
+      } });
+      return res.status(200).json({ recorded: true });
+    }
     if (action === 'subscribe') {
       requirePost(req);
       if (!pushReady()) fail(503, 'Notification belum tersedia. Kalkulator masih boleh digunakan.');
@@ -155,6 +164,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req);
+    if (action === 'stats' && req.method === 'GET') {
+      const { data } = await supabase('/rest/v1/rpc/car_admin_stats', { method: 'POST', body: {} });
+      return res.status(200).json(data);
+    }
     if (action === 'admin' && req.method === 'GET') {
       const { data } = await supabase('/rest/v1/car_announcements?select=*&order=created_at.desc&limit=40');
       return res.status(200).json({ email: user.email, announcements: data, pushReady: pushReady() });

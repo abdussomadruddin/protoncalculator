@@ -24,6 +24,17 @@
       </form>
     </section>
     <section id="adminDashboard" hidden>
+      <section class="admin-analytics" aria-labelledby="trafficHeading">
+        <div class="analytics-heading"><h2 id="trafficHeading">Trafik &amp; peranti</h2><button id="statsRefresh" class="icon-button" title="Refresh statistik" aria-label="Refresh statistik"><i data-lucide="refresh-cw"></i></button></div>
+        <p id="statsStatus" class="admin-subtitle" role="status"></p>
+        <div class="traffic-periods">
+          <div><h3>1 hari</h3><strong id="visits1">—</strong><span>lawatan</span><p id="devices1"></p></div>
+          <div><h3>7 hari</h3><strong id="visits7">—</strong><span>lawatan</span><p id="devices7"></p></div>
+          <div><h3>30 hari</h3><strong id="visits30">—</strong><span>lawatan</span><p id="devices30"></p></div>
+        </div>
+        <dl class="device-stats"><div><dt><i data-lucide="bell-ring"></i> Notifikasi aktif</dt><dd id="notificationCount">—</dd></div><div><dt><i data-lucide="smartphone"></i> App telefon pernah dibuka</dt><dd id="phoneAppCount">—</dd></div><div><dt><i data-lucide="badge-check"></i> App telefon + notifikasi</dt><dd id="phonePushCount">—</dd></div></dl>
+        <p class="admin-subtitle">Peranti/browser unik, bukan akaun pengguna. Lawatan baharu dikira selepas 30 minit. Tempoh bergerak mengikut 24 jam; trafik lama sebelum pengumpulan data tidak tersedia. Home Screen dikira apabila app telefon dibuka, bukan ketika ikon ditambah. Pemadaman app dan sekatan notifikasi OS tidak dapat dikesan serta-merta.</p>
+      </section>
       <div class="admin-section-heading"><div><h2>Hebahan</h2><p id="adminIdentity" class="admin-subtitle"></p></div><button id="refreshButton" class="icon-button" title="Refresh" aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
       <div class="admin-workspace">
         <form id="announcementForm">

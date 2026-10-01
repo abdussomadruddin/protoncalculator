@@ -84,3 +84,10 @@ Verify configured API responses, direct database anon denial and RPC permissions
 Then the owner must validate password login and a push on at least
 one iPhone installed app and one Android installed app. Browser mocks do not
 prove OS permission dialogs or real-device notification delivery.
+# Admin Analytics
+
+Apply `backend/analytics.sql` once to the existing Car Loan MY project before releasing this feature. It is additive and repeatable, enables RLS and grants access only to the server service role. It does not alter existing subscriptions or announcement records.
+
+The public activity endpoint accepts only same-origin POSTs and stores hashes of random browser identifiers, not IP addresses, URLs, names or loan inputs. All aggregate reads require the existing admin session. Traffic is visits and distinct browser IDs over rolling 1/7/30-day windows. Repeated sessions from a browser within 30 minutes count once. Counts are approximate browser/device metrics, not identified people; clearing storage or using another browser can count separately.
+
+Home Screen counts mean a mobile standalone app was actually opened. Silent uninstall and OS-level notification settings cannot be detected. Notification totals count distinct registered tokens with enabled subscriptions, excluding subsequently observed denied/default/unsupported browser permission. Existing subscriptions without telemetry remain counted; no historical app-install numbers are fabricated. Traffic starts on activation.
