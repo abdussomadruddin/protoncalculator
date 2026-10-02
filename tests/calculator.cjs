@@ -65,7 +65,7 @@ function expectedRebate(brand, model, variant) {
           assert.equal(Number(await page.inputValue('#interestRate')), expectedRate);
           assert.equal(await page.locator('#priceSource').getAttribute('href'), variant.source || model.source);
           await page.locator('input[name="insuranceOption"][value="exclude"]').check();
-          if (model.estimated || model.needsConfirmation) {
+          if (model.estimated || model.needsConfirmation || variant.needsConfirmation) {
             assert.ok(await page.locator('#copyButton').isDisabled());
             await page.locator('#priceConfirmed').check();
           }
@@ -161,7 +161,7 @@ function expectedRebate(brand, model, variant) {
     assert.ok((await page.locator('#priceNote').innerText()).includes('Snapshot September'));
     assert.ok(!(await page.inputValue('#templateOutput')).includes('not for the current month'));
     assert.deepEqual(errors, []);
-    console.log(`PASS: 7 brands, ${Object.values(catalog).flat().length} models, ${variants} variants; all periods, deposit, NCD, battery, confirmations, clipboard and 5 viewport sizes.`);
+    console.log(`PASS: ${Object.keys(catalog).length} brands, ${Object.values(catalog).flat().length} models, ${variants} variants; all periods, deposit, NCD, battery, confirmations, clipboard and 5 viewport sizes.`);
   } catch (error) {
     await page.screenshot({ path: '/tmp/car-calculator-failure.png', fullPage: true });
     throw error;

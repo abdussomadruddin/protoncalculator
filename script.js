@@ -116,7 +116,7 @@ function calculateValues() {
   const errors = [];
   if (!form.checkValidity() || inputPrice <= 0) errors.push("Sila lengkapkan harga dan nilai input yang sah.");
   if (rebate > inputPrice) errors.push("Rebate tidak boleh melebihi harga kereta.");
-  if ((model.estimated || model.needsConfirmation) && !$("#priceConfirmed").checked) {
+  if ((model.estimated || model.needsConfirmation || variant.needsConfirmation) && !$("#priceConfirmed").checked) {
     errors.push("Sahkan harga dan caj akhir dengan pengedar sebelum salin quotation.");
   }
   return {
@@ -162,21 +162,24 @@ function render() {
   $("#customDepositWrap").hidden = !custom;
   ncdSelect.disabled = values.insuranceOption !== "with";
   $("#priceLabel").textContent = "Car Body Price";
-  $("#priceStatus").textContent = (model.estimated ? "Harga anggaran" : "Disemak") + " · 30 Sep 2026" + (values.priceOverride ? " · Harga manual" : "");
+  const checkedAt = model.checkedAt || CATALOG_CHECKED_AT;
+  const checkedLabel = new Date(checkedAt + "T00:00:00+08:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kuala_Lumpur" });
+  const checkedMonth = new Date(checkedAt + "T00:00:00+08:00").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "Asia/Kuala_Lumpur" });
+  $("#priceStatus").textContent = (model.estimated ? "Harga anggaran" : "Disemak") + " · " + checkedLabel + (values.priceOverride ? " · Harga manual" : "");
   $("#priceSource").href = variant.source || model.source;
   $("#priceScope").textContent = "Semenanjung Malaysia · " + (model.registration || "Individu persendirian") + (model.powertrain ? " · " + model.powertrain : "");
   $("#priceNote").textContent = [
-    "Body Price menggunakan retail/OTR tanpa insurance: " + money(variant.otrPrice) + ". Caj standard sudah termasuk; tidak ditambah lagi.",
-    model.paintNote, model.note,
-    localDate().slice(0, 7) !== CATALOG_CHECKED_AT.slice(0, 7) ? "Snapshot September 2026. Harga bulan semasa perlu disemak semula." : "",
+    "Body Price menggunakan " + (model.priceBasis || "retail/OTR tanpa insurance") + ": " + money(variant.otrPrice) + (model.priceBasis ? "." : ". Caj standard sudah termasuk; tidak ditambah lagi."),
+    model.paintNote, model.note, variant.note,
+    localDate().slice(0, 7) !== checkedAt.slice(0, 7) ? "Snapshot " + checkedMonth + ". Harga bulan semasa perlu disemak semula." : "",
   ].filter(Boolean).join(" ");
   const offer = selectedOffer();
   const audit = REBATE_AUDIT_SOURCES[values.brand];
   $("#rebateYearWrap").hidden = !["Honda", "Chery"].includes(values.brand);
-  $("#rebateNote").textContent = (rebateManual ? "Rebate manual. " : offer ? "Default rasmi " + money(offer.amount) + ". " : "Rebate belum dapat disahkan; dibiarkan kosong, bukan pengesahan tiada promosi. ") + (offer?.note || audit.note) + (localDate() > REBATE_CHECKED_AT ? " Snapshot rebate perlu disemak semula untuk bulan semasa." : " Disemak 30 Sep 2026.");
+  $("#rebateNote").textContent = (rebateManual ? "Rebate manual. " : offer ? "Default rasmi " + money(offer.amount) + ". " : "Rebate belum dapat disahkan; dibiarkan kosong, bukan pengesahan tiada promosi. ") + (offer?.note || audit.note) + (localDate() > (audit.checkedAt || REBATE_CHECKED_AT) ? " Snapshot rebate perlu disemak semula untuk bulan semasa." : " Disemak " + (audit.checkedAt || "30 Sep 2026") + ".");
   $("#rebateSource").href = offer?.source || audit.source;
   $("#interestNote").textContent = "Default anggaran flat: bawah RM50k 3.00%, RM50k–99,999.99 2.50%, RM100k ke atas / EV 2.35%, komersial 3.50%. Bukan kadar terendah dijamin; ubah mengikut tawaran bank. Kadar effective/reducing balance tidak boleh dimasukkan sebagai kadar flat.";
-  $("#confirmationWrap").hidden = !model.estimated && !model.needsConfirmation;
+  $("#confirmationWrap").hidden = !model.estimated && !model.needsConfirmation && !variant.needsConfirmation;
   $("#insuranceNote").textContent = values.hasBodyPrice
     ? "Anggaran 3.3% daripada harga body sebelum rebate, selepas NCD. Bukan premium insurer sebenar; perlindungan tambahan tidak termasuk."
     : "Insurans 3.3% memerlukan harga body sah; harga OTR tidak dianggap sebagai harga body.";

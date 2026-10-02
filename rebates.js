@@ -45,6 +45,10 @@ const OFFICIAL_REBATES = {
   },
 };
 const REBATE_AUDIT_SOURCES = {
+  Mitsubishi: { checkedAt: "2026-10-02", source: "https://www.mitsubishi-motors.com.my/brochures/", note: "Rebate Oktober tepat mengikut varian belum disahkan. Pakej ansuran, trade-in dan tawaran bersyarat tidak dianggap cash rebate umum." },
+  Mazda: { checkedAt: "2026-10-02", source: "https://www.mazda.com.my/vehicles", note: "Rebate Oktober tepat mengikut varian/tahun belum disahkan; tidak disimpulkan daripada beza harga MY25/MY26." },
+  GWM: { checkedAt: "2026-10-02", source: "https://www.gwm.com.my/en/models", note: "RM3,000 dalam risalah ialah GWM Owners Loyalty Offer, bukan rebate semua pembeli. Tawaran bersyarat tidak dimasukkan sebagai default." },
+  BYD: { checkedAt: "2026-10-02", source: "https://byd.simemotors.my/", note: "Rebate Oktober tepat mengikut varian belum disahkan. Harga RRP dan OTR tidak dikurangkan menggunakan promosi tidak disahkan." },
   Proton: { source: "https://www.proton.com/offers/current-promotion/", note: "Kempen September menyatakan cash rebate sehingga RM9,000 tanpa amaun tepat setiap varian. Trade-in dan bonus tidak dimasukkan secara automatik." },
   Perodua: { source: "https://www.perodua.com.my/", note: "Tiada amaun rebate pembelian tepat yang dapat disahkan untuk varian ini. Diskaun servis bukan rebate pembelian." },
   Honda: { source: "https://www.honda.com.my/happening/", note: "Varian/tahun ini tidak mempunyai amaun tepat dalam jadual promosi yang disemak. Shared Rewards, One Nation dan bonus first-500 tidak dimasukkan secara automatik." },
