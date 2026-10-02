@@ -5,8 +5,8 @@ const originalFetch = global.fetch;
 const originalEnv = { ...process.env };
 Object.assign(process.env, { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'private-service-key', SUPABASE_PUBLISHABLE_KEY: 'public-key', ADMIN_EMAIL: 'lurbaymarketing@gmail.com', APP_ORIGIN: 'https://protoncalculator.vercel.app' });
 after(() => { global.fetch = originalFetch; process.env = originalEnv; });
-async function request(action, { method = 'GET', body, cookie, origin = 'https://protoncalculator.vercel.app' } = {}) {
-  const req = { query: { action }, method, body, headers: { origin, 'content-type': 'application/json', cookie } };
+async function request(action, { method = 'GET', body, cookie, id, origin = 'https://protoncalculator.vercel.app' } = {}) {
+  const req = { query: { action, id }, method, body, headers: { origin, 'content-type': 'application/json', cookie } };
   const res = { headers: {}, code: null, data: null, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } };
   await handler(req, res); return res;
 }
@@ -15,6 +15,18 @@ test('public config cannot expose private credentials', async () => {
   assert.ok(!JSON.stringify(res.data).includes('private-service-key'));
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   assert.equal((await request('admin')).code, 503); process.env.SUPABASE_SERVICE_ROLE_KEY = key;
+});
+test('notification deep link fetches only the requested active announcement', async () => {
+  const id = '11111111-1111-4111-8111-111111111111';
+  global.fetch = async url => {
+    const parsed = new URL(url);
+    assert.equal(parsed.searchParams.get('active'), 'eq.true');
+    assert.equal(parsed.searchParams.get('id'), 'eq.' + id);
+    assert.equal(parsed.searchParams.get('select'), 'id,title,message,link_url,link_label');
+    return new Response('[]');
+  };
+  assert.deepEqual((await request('announcement', { id })).data, { announcement: null });
+  assert.equal((await request('announcement', { id: 'invalid&active=eq.false' })).code, 400);
 });
 test('unauthenticated visitors cannot publish, deactivate, send, or read admin data', async () => {
   global.fetch = () => { throw new Error('Unexpected backend request'); };

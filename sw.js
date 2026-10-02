@@ -21,10 +21,25 @@ self.addEventListener('push', event => {
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  const announcementId = event.notification.data?.announcementId || 'latest';
+  const target = '/?announcement=' + encodeURIComponent(announcementId);
   // Always open our app; external links remain an explicit action in the popup.
   event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async clients => {
     const client = clients.find(client => new URL(client.url).origin === self.location.origin && !new URL(client.url).pathname.startsWith('/admin'));
-    if (client) { await client.focus(); client.postMessage({ type: 'announcement', force: true }); }
-    else await self.clients.openWindow('/?announcement=' + encodeURIComponent(event.notification.data?.announcementId || 'latest'));
+    if (client) {
+      await client.focus();
+      // A suspended/old page may not have a listener. Use a deep link if it cannot acknowledge.
+      const handled = await new Promise(resolve => {
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => { channel.port1.close(); resolve(false); }, 500);
+        channel.port1.onmessage = () => { clearTimeout(timer); channel.port1.close(); resolve(true); };
+        try { client.postMessage({ type: 'announcement', force: true, announcementId }, [channel.port2]); }
+        catch { clearTimeout(timer); channel.port1.close(); resolve(false); }
+      });
+      if (!handled) {
+        const navigated = await client.navigate(target).catch(() => null);
+        if (!navigated) await self.clients.openWindow(target);
+      }
+    } else await self.clients.openWindow(target);
   }));
 });

@@ -120,7 +120,8 @@ module.exports = async function handler(req, res) {
     }
     const body = req.body || {};
     if (action === 'announcement' && req.method === 'GET') {
-      const { data } = await supabase('/rest/v1/car_announcements?active=eq.true&select=id,title,message,link_url,link_label&order=created_at.desc&limit=1');
+      const idFilter = req.query.id ? '&id=eq.' + uuid(req.query.id) : '';
+      const { data } = await supabase('/rest/v1/car_announcements?active=eq.true' + idFilter + '&select=id,title,message,link_url,link_label&order=created_at.desc&limit=1');
       return res.status(200).json({ announcement: data[0] || null });
     }
     if (action === 'activity') {

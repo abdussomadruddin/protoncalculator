@@ -24,16 +24,20 @@
   let announcementTimer;
   let notificationAttempted = false;
   let notificationSynced = false;
+  let announcementRequest = 0;
+  let announcementLoading = false;
+  const launchAnnouncement = new URLSearchParams(location.search).get('announcement');
+  const notificationLaunch = new URLSearchParams(location.search).has('announcement');
   const reminderInterval = 5 * 60 * 1000;
   let nextInstallReminder = Date.now() + reminderInterval;
   const reminderExempt = () => phone && standalone() && notificationSynced && 'Notification' in window && Notification.permission === 'granted';
   function checkInstallReminder() {
-    if (document.hidden || dialog.open || locked || reminderExempt() || Date.now() < nextInstallReminder) return;
+    if (document.hidden || dialog.open || locked || announcementLoading || reminderExempt() || Date.now() < nextInstallReminder) return;
     installGuide();
   }
   const icons = () => window.lucide?.createIcons();
-  const api = async (actionName, body) => {
-    const response = await fetch('/api/app?action=' + actionName, {
+  const api = async (actionName, body, id) => {
+    const response = await fetch('/api/app?action=' + actionName + (id && id !== 'latest' ? '&id=' + encodeURIComponent(id) : ''), {
       method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store', signal: AbortSignal.timeout(12000),
     });
@@ -49,6 +53,7 @@
     content.replaceChildren();
     status.textContent = '';
     close.hidden = locked;
+    close.onclick = dismiss;
     action.hidden = !button;
     action.textContent = button || '';
     action.disabled = false;
@@ -209,15 +214,22 @@
     }
     content.append(menu); icons();
   }
-  async function checkAnnouncement(force = false) {
-    if (locked || (dialog.open && !displayedAnnouncement && !force)) return;
+  async function checkAnnouncement(force = false, id) {
+    if (!force && (announcementLoading || locked || (dialog.open && !displayedAnnouncement))) return;
+    const request = ++announcementRequest;
+    if (force) {
+      announcementLoading = true;
+      show({ heading: 'Memuatkan hebahan', text: 'Mendapatkan hebahan yang dipilih...', button: 'Tutup' });
+    }
     try {
-      const data = await api('announcement');
-      if (locked || (dialog.open && !displayedAnnouncement && !force)) return;
+      const data = await api('announcement', null, id);
+      if (request !== announcementRequest) return;
+      announcementLoading = false;
+      if (!force && (locked || (dialog.open && !displayedAnnouncement))) return;
       announcement = data.announcement;
       if (displayedAnnouncement && !announcement) { displayedAnnouncement = null; dialog.close(); }
       if (!announcement) {
-        if (force) show({ heading: 'Tiada hebahan baharu', text: 'Anda sudah mengikuti hebahan terkini.', button: 'Tutup' });
+        if (force) show({ heading: 'Tiada hebahan baharu', text: id && id !== 'latest' ? 'Hebahan ini sudah ditutup oleh admin atau tidak lagi tersedia.' : 'Anda sudah mengikuti hebahan terkini.', button: 'Tutup' });
         return;
       }
       if (!force && displayedAnnouncement === announcement.id && dialog.open) return;
@@ -232,11 +244,15 @@
       displayedAnnouncement = a.id;
       featureIcon('megaphone');
       close.onclick = () => { storage.set('carloan-announcement-' + a.id, '1'); dismiss(); };
-    } catch { if (force) show({ heading: 'Tidak dapat memuatkan hebahan', text: 'Semak sambungan internet dan cuba lagi.', button: 'Cuba lagi', run: () => checkAnnouncement(true) }); }
+    } catch {
+      if (request !== announcementRequest) return;
+      announcementLoading = false;
+      if (force) show({ heading: 'Tidak dapat memuatkan hebahan', text: 'Semak sambungan internet dan cuba lagi.', button: 'Cuba lagi', run: () => checkAnnouncement(true, id) });
+    }
   }
   dialog.addEventListener('cancel', event => { if (locked) event.preventDefault(); });
   close.onclick = dismiss;
-  dialog.addEventListener('close', () => { if (dialog.open) return; displayedAnnouncement = null; close.onclick = dismiss; checkInstallReminder(); });
+  dialog.addEventListener('close', () => { if (dialog.open) return; if (announcementLoading) { announcementRequest++; announcementLoading = false; } displayedAnnouncement = null; close.onclick = dismiss; checkInstallReminder(); });
   document.querySelector('#appNotice button').onclick = () => { document.querySelector('#appNotice').hidden = true; };
   document.querySelector('#appMenuButton').onclick = settings;
   addEventListener('beforeinstallprompt', event => {
@@ -253,13 +269,25 @@
     swReady.catch(() => { swReady = null; });
   }
   notificationAttempted = storage.get('carloan-notification-attempted') === '1';
-  if (standalone()) {
+  navigator.serviceWorker?.addEventListener('message', event => {
+    if (event.data?.type !== 'announcement') return;
+    if (event.data.force === true) event.ports?.[0]?.postMessage({ handled: true });
+    checkAnnouncement(event.data.force === true, event.data.announcementId);
+  });
+  if (notificationLaunch) {
+    const url = new URL(location.href); url.searchParams.delete('announcement'); history.replaceState(null, '', url);
+    checkAnnouncement(true, launchAnnouncement || 'latest');
+    if ('Notification' in window && Notification.permission === 'granted' && swReady && 'PushManager' in window) {
+      subscribe(true).catch(() => notice('Langganan notification belum disegerakkan. Cuba semula dalam Tetapan app.'));
+    }
+  } else if (standalone()) {
     notificationConfig().then(async config => {
+      if (announcementLoading || displayedAnnouncement) return;
       if (!config.pushReady) { notificationUnavailable('Sambungan notification di server belum diaktifkan oleh admin. Ini bukan masalah tetapan telefon anda. Kalkulator masih boleh digunakan.'); return; }
       if (!('Notification' in window) || Notification.permission !== 'granted') {
         if (!notificationAttempted) notificationGate();
         else notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
-      } else if (!await subscribe(true)) notificationGate();
+      } else if (!await subscribe(true) && !announcementLoading && !displayedAnnouncement) notificationGate();
     }).catch(() => notice('Sambungan server notification terganggu. Kalkulator masih boleh digunakan.'));
   } else {
     installGuide();
@@ -267,9 +295,8 @@
       subscribe(true).catch(() => notice('Langganan notification belum disegerakkan. Cuba semula dalam Tetapan app.'));
     }
   }
-  checkAnnouncement(new URLSearchParams(location.search).has('announcement'));
+  if (!notificationLaunch) checkAnnouncement();
   announcementTimer = setInterval(() => { if (!document.hidden) checkAnnouncement(); }, 60000);
   setInterval(checkInstallReminder, 15000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkInstallReminder(); checkAnnouncement(); } });
-  navigator.serviceWorker?.addEventListener('message', event => checkAnnouncement(event.data?.force === true));
 })();

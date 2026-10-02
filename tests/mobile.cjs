@@ -16,7 +16,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/app') {
     res.setHeader('Content-Type', 'application/json');
     if (url.searchParams.get('action') === 'config') return res.end(JSON.stringify({ ready: pushReady, pushReady, vapidPublicKey: pushReady ? vapid.publicKey : null }));
-    if (url.searchParams.get('action') === 'announcement') return res.end(JSON.stringify({ announcement }));
+    if (url.searchParams.get('action') === 'announcement') return res.end(JSON.stringify({ announcement: url.searchParams.has('id') && url.searchParams.get('id') !== announcement?.id ? null : announcement }));
     if (url.searchParams.get('action') === 'subscribe') { let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => { subscriptions.push(JSON.parse(body)); res.end('{"subscribed":true}'); }); return; }
     if (url.searchParams.get('action') === 'admin') { res.statusCode = 401; return res.end('{"error":"Sila login admin."}'); }
     res.statusCode = 404; return res.end('{}');
@@ -161,6 +161,39 @@ async function mockInstalled(page, permission, existing = true, installed = true
     await granted.waitForFunction(expected => document.querySelector('#dialogTitle').textContent === expected, announcement.title);
     await granted.locator('#dialogClose').click();
     await granted.reload(); assert.ok(await granted.locator('#appDialog').isHidden());
+    // Notification clicks outrank installation/permission dialogs and do not wait for polling.
+    const clicked = await pageFor(iosUA); await mockInstalled(clicked, 'denied');
+    let finishAnnouncement;
+    await clicked.route('**/api/app?action=announcement&id=*', route => new Promise(resolve => {
+      finishAnnouncement = async () => { await route.fulfill({ json: { announcement: activeAnnouncement } }); resolve(); };
+    }));
+    await clicked.goto(base + '/?announcement=' + activeAnnouncement.id);
+    await clicked.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Memuatkan hebahan');
+    assert.ok(!new URL(clicked.url()).searchParams.has('announcement'));
+    while (!finishAnnouncement) await new Promise(resolve => setTimeout(resolve, 10));
+    await finishAnnouncement();
+    await clicked.waitForFunction(expected => document.querySelector('#dialogTitle').textContent === expected, activeAnnouncement.title);
+    await clicked.locator('#dialogClose').click();
+    await clicked.locator('#appMenuButton').click();
+    await clicked.getByRole('button', { name: 'Notification', exact: true }).click();
+    await clicked.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Aktifkan notification');
+    finishAnnouncement = null;
+    await clicked.evaluate(id => {
+      window.clickAcknowledged = false;
+      const channel = new MessageChannel();
+      channel.port1.onmessage = () => { window.clickAcknowledged = true; channel.port1.close(); channel.port2.close(); };
+      navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'announcement', force: true, announcementId: id }, ports: [channel.port2] }));
+    }, activeAnnouncement.id);
+    await clicked.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Memuatkan hebahan');
+    await clicked.waitForFunction(() => window.clickAcknowledged);
+    while (!finishAnnouncement) await new Promise(resolve => setTimeout(resolve, 10));
+    await finishAnnouncement();
+    await clicked.waitForFunction(expected => document.querySelector('#dialogTitle').textContent === expected, activeAnnouncement.title);
+    assert.ok(await clicked.locator('#dialogClose').isVisible());
+    await clicked.unroute('**/api/app?action=announcement&id=*');
+    await clicked.evaluate(() => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'announcement', force: true, announcementId: 'removed-announcement' } })));
+    await clicked.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Tiada hebahan baharu');
+    assert.match(await clicked.locator('#dialogDescription').innerText(), /ditutup oleh admin/);
     assert.deepEqual(errors, []);
     console.log('PASS mobile: all-device access, 5-minute install reminders, modal deferral, phone notification exemption, desktop app reminders, admin, 4-step guides, subscription and phone layouts.');
   } finally { for (const context of contexts) await context.close(); await browser.close(); await new Promise(resolve => server.close(resolve)); }
