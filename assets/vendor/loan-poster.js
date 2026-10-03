@@ -62,27 +62,27 @@
     if(logo) ctx.drawImage(logo,950,27,90,90);
     const terms=[v.loanPeriod];
     terms.forEach((years,i)=>{
-      const x=terms.length===1?180:36+i*522, w=terms.length===1?720:486;
-      panel(x,216,w,800);
+      const x=36, w=1008;
+      panel(x,216,w,870);
       ctx.fillStyle='#071b43';ctx.fillRect(x,216,85,70);
       text(String(i+1),x+27,266,42,'#ffffff',60);
       text(years+' TAHUN',x+110,267,36,'#071b43',w-135);
       ctx.fillStyle='#e00028';ctx.fillRect(x+110,283,76,4);
-      text(v.model,x+28,336,29,'#071b43',w-56);
-      text(v.variant,x+28,375,23,'#627086',w-56);
+      text(v.model,x+28,336,38,'#071b43',w-56);
+      text(v.variant,x+28,382,31,'#627086',w-56);
       const interest=v.loanAfterDeposit*v.interestRate/100*years;
       const monthly=calculateMonthly(v.loanAfterDeposit,v.interestRate,years);
       const rows=[['Harga kereta',money(v.inputPrice)],['Rebate',money(v.rebate)],['Aksesori tambahan',money(v.extras)],['Insurans (NCD '+v.ncd+'%)',v.insuranceOption==='with'?money(v.insurance):'Tidak termasuk'],['Downpayment',money(v.depositAmount)],['Jumlah loan',money(v.loanAfterDeposit)],['Kadar faedah flat',v.interestRate+'%'],['Jumlah faedah',money(interest)],['Jumlah bayaran loan',money(v.loanAfterDeposit+interest)]];
       rows.forEach(([label,value],index)=>{
-        const y=423+index*43;
+        const y=441+index*52;
         ctx.strokeStyle='#dce0e4';ctx.beginPath();ctx.moveTo(x+24,y-26);ctx.lineTo(x+w-24,y-26);ctx.stroke();
-        text(label,x+26,y,19,'#18232c',w*.53-30);
-        ctx.textAlign='right';text(value,x+w-26,y,23,'#071b43',w*.44-26);ctx.textAlign='left';
+        text(label,x+26,y,30,'#18232c',w*.53-30);
+        ctx.textAlign='right';text(value,x+w-26,y,34,'#071b43',w*.44-26);ctx.textAlign='left';
       });
-      text('ANSURAN BULANAN',x+28,852,22,'#18232c',w-56);
-      text(money(monthly),x+28,917,50,'#db0027',w-56);
-      text('/ bulan',x+28,951,23,'#18232c',w-56);
-      if(v.batteryMonthly) text('Bateri berasingan: '+money(v.batteryMonthly)+'/bln',x+28,986,20,'#627086',w-56);
+      text('ANSURAN BULANAN',x+28,943,30,'#18232c',w-56);
+      text(money(monthly),x+28,1015,72,'#db0027',w-56);
+      text('/ bulan',x+28,1055,30,'#18232c',w-56);
+      if(v.batteryMonthly) text('Bateri berasingan: '+money(v.batteryMonthly)+'/bln',x+450,1055,25,'#627086',w-480);
     });
     panel(36,1140,1008,119);
     if(logo)ctx.drawImage(logo,58,1161,76,76);
