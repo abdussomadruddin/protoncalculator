@@ -30,6 +30,22 @@ test('refresh restores only agent session and no private token is returned',asyn
   global.fetch=async url=>{assert.ok(url.includes('grant_type=refresh_token'));return new Response(JSON.stringify({access_token:'new-access',refresh_token:'new-refresh',user}));};
   const res=await request('pro-session',{cookie:'__Host-carloan-agent-refresh=old-refresh'});assert.equal(res.code,200);assert.equal(res.data.email,user.email);assert.ok(!JSON.stringify(res.data).includes('refresh'));assert.equal(res.headers['Set-Cookie'].length,2);assert.ok(res.headers['Set-Cookie'].some(cookie=>cookie.includes('carloan-agent-refresh=')&&cookie.includes('Max-Age=31536000')));
 });
+test('duplicate registration retries authenticate password without overwriting existing account',async()=>{
+  let valid=true,writes=0;
+  global.fetch=async(url,opts)=>{
+    if(url.includes('/rpc/car_save_download'))return new Response('true');
+    if(url.endsWith('/auth/v1/admin/users')){writes++;return new Response(JSON.stringify({error_code:'email_exists'}),{status:422});}
+    assert.ok(url.includes('grant_type=password'));
+    return valid?new Response(JSON.stringify({access_token:'access-token',refresh_token:'refresh-token',user})):new Response(JSON.stringify({error_code:'invalid_credentials'}),{status:400});
+  };
+  const body={email:user.email,password:'password123',name:'Agent',phone:'0173559147'};
+  const retry=await request('pro-register',{body});assert.equal(retry.code,200);assert.equal(retry.headers['Set-Cookie'].length,2);assert.equal(writes,1);
+  valid=false;const denied=await request('pro-register',{body});assert.equal(denied.code,409);assert.match(denied.data.error,/sudah didaftarkan/);assert.ok(!denied.headers['Set-Cookie']);
+});
+test('invalid refresh cookie is cleared instead of being repeatedly retried',async()=>{
+  global.fetch=async()=>new Response(JSON.stringify({error_code:'refresh_token_not_found'}),{status:400});
+  const denied=await request('pro-session',{cookie:'__Host-carloan-agent-refresh=expired-token'});assert.equal(denied.code,401);assert.ok(denied.headers['Set-Cookie'].every(cookie=>cookie.includes('Max-Age=0')));
+});
 test('PRO REST reads use verified user JWT and public key so RLS is not bypassed',async()=>{
   global.fetch=async(url,opts)=>{assert.equal(opts.headers.apikey,'public-key');assert.equal(opts.headers.Authorization,'Bearer access-token');return new Response(JSON.stringify(url.endsWith('/auth/v1/user')?user:[]));};
   assert.equal((await request('pro-cases')).code,200);assert.equal((await request('pro-appointments')).code,200);
