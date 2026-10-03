@@ -3,6 +3,8 @@ const webpush = require('web-push');
 
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const cookieName = '__Host-carloan-admin';
+const refreshCookieName = '__Host-carloan-admin-refresh';
+const persistentSessionSeconds = 365 * 24 * 60 * 60;
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const fail = (status, message) => { throw new HttpError(status, message); };
 const configured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_PUBLISHABLE_KEY && process.env.ADMIN_EMAIL);
@@ -54,20 +56,37 @@ function sameOrigin(req) {
   ].filter(Boolean));
   if (!origins.has(req.headers.origin)) fail(403, 'Domain ini belum dibenarkan. Buka Car Loan MY di domain rasmi dan cuba semula.');
 }
-function adminToken(req) {
-  const cookie = String(req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(cookieName + '='));
-  return cookie?.slice(cookieName.length + 1);
+function readCookie(req, name) {
+  const cookie = String(req.headers.cookie || '').split(';').map(x => x.trim()).find(x => x.startsWith(name + '='));
+  return cookie?.slice(name.length + 1);
 }
-function setAdminSession(res, accessToken) {
+function adminToken(req) { return readCookie(req, cookieName); }
+function setAdminSession(res, accessToken, refreshToken) {
   const claims = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString());
   const expires = Math.max(0, Math.min((claims.exp || 0) - Math.floor(Date.now() / 1000), 3600));
   if (!expires) fail(401, 'Sesi login telah tamat.');
-  res.setHeader('Set-Cookie', `${cookieName}=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires}`);
+  const cookies = [`${cookieName}=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${expires}`];
+  if (refreshToken) {
+    if (!/^[A-Za-z0-9_-]+$/.test(refreshToken)) fail(503, 'Sesi tidak sah. Cuba login semula.');
+    cookies.push(`${refreshCookieName}=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${persistentSessionSeconds}`);
+  }
+  res.setHeader('Set-Cookie', cookies.length === 1 ? cookies[0] : cookies);
 }
-async function requireAdmin(req) {
+async function requireAdmin(req, res) {
   const token = adminToken(req);
-  if (!token || !/^[A-Za-z0-9_.-]+$/.test(token)) fail(401, 'Sila login admin.');
-  const { data: user } = await supabase('/auth/v1/user', { service: false, authToken: token });
+  let user;
+  if (token && /^[A-Za-z0-9_.-]+$/.test(token)) {
+    try { ({ data: user } = await supabase('/auth/v1/user', { service: false, authToken: token })); }
+    catch(error) { if(error.status !== 401) throw error; }
+  }
+  if (!user) {
+    const refreshToken = readCookie(req, refreshCookieName);
+    if (!refreshToken || !/^[A-Za-z0-9_-]{1,512}$/.test(refreshToken)) fail(401, 'Sila login admin.');
+    const { data: session } = await supabase('/auth/v1/token?grant_type=refresh_token', { service:false, method:'POST', body:{refresh_token:refreshToken} });
+    user = session?.user;
+    if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses admin tidak dibenarkan.');
+    setAdminSession(res, session.access_token, session.refresh_token);
+  }
   if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses admin tidak dibenarkan.');
   return user;
 }
@@ -171,18 +190,24 @@ module.exports = async function handler(req, res) {
       } catch (error) { if (error.status === 401) fail(401, 'Login gagal. Semak email dan password.'); throw error; }
       const user = session?.user;
       if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses tidak dibenarkan.');
-      setAdminSession(res, session.access_token);
+      setAdminSession(res, session.access_token, session.refresh_token);
       return res.status(200).json({ email: user.email });
     }
     if (action === 'logout') {
       requirePost(req);
-      const token = adminToken(req);
+      let token = adminToken(req);
+      if (!token && readCookie(req, refreshCookieName)) {
+        try {
+          const { data: session } = await supabase('/auth/v1/token?grant_type=refresh_token', { method:'POST',service:false,body:{refresh_token:readCookie(req,refreshCookieName)} });
+          token = session?.access_token;
+        } catch {}
+      }
       // Invalidate the Supabase session as well as deleting the browser cookie.
       if (token) await supabase('/auth/v1/logout', { method: 'POST', service: false, authToken: token }).catch(() => {});
-      res.setHeader('Set-Cookie', `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+      res.setHeader('Set-Cookie', [cookieName,refreshCookieName].map(name=>`${name}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`));
       return res.status(200).json({ loggedOut: true });
     }
-    const user = await requireAdmin(req);
+    const user = await requireAdmin(req, res);
     if (action === 'downloads' && req.method === 'GET') {
       const page = Number(req.query.page || 1);
       if (!Number.isSafeInteger(page) || page < 1 || page > 100000) fail(400, 'Halaman tidak sah.');

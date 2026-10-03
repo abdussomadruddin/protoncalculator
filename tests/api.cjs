@@ -16,6 +16,23 @@ test('public config cannot expose private credentials', async () => {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   assert.equal((await request('admin')).code, 503); process.env.SUPABASE_SERVICE_ROLE_KEY = key;
 });
+test('persistent admin session rotates refresh cookie for 365 days without exposing tokens', async () => {
+  const access = 'header.'+Buffer.from(JSON.stringify({exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.signature';
+  global.fetch = async (url,options) => {
+    if(url.includes('grant_type=refresh_token')) {
+      assert.equal(JSON.parse(options.body).refresh_token,'existing-refresh');
+      return new Response(JSON.stringify({access_token:access,refresh_token:'rotated-refresh',user:{email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-01-01'}}));
+    }
+    return new Response('[]');
+  };
+  const res=await request('downloads',{cookie:'__Host-carloan-admin-refresh=existing-refresh'});
+  assert.equal(res.code,200);
+  assert.ok(res.headers['Set-Cookie'].some(cookie=>cookie.includes('rotated-refresh') && cookie.includes('Max-Age=31536000') && cookie.includes('HttpOnly; Secure; SameSite=Strict')));
+  assert.ok(!JSON.stringify(res.data).includes('rotated-refresh'));
+  const logout=await request('logout',{method:'POST',body:{},cookie:'__Host-carloan-admin-refresh=existing-refresh'});
+  assert.equal(logout.headers['Set-Cookie'].length,2);
+  assert.ok(logout.headers['Set-Cookie'].every(cookie=>cookie.includes('Max-Age=0')));
+});
 test('notification deep link fetches only the requested active announcement', async () => {
   const id = '11111111-1111-4111-8111-111111111111';
   global.fetch = async url => {
