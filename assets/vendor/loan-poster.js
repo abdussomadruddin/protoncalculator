@@ -10,6 +10,32 @@
   dialog.querySelector('.icon-button').onclick = () => dialog.close();
   const canvas = dialog.querySelector('canvas'), ctx = canvas.getContext('2d');
   const form = dialog.querySelector('form'), status = form.querySelector('[role=status]');
+  const contactKey = 'car-loan-my-poster-contact';
+  const contactSummary = document.createElement('p');
+  const editContact = document.createElement('button');
+  editContact.type = 'button'; editContact.className = 'secondary-action';
+  editContact.textContent = 'Edit nama & WhatsApp';
+  form.prepend(contactSummary, editContact);
+  function contactMode(saved) {
+    form.querySelectorAll('label').forEach(label => { label.hidden = saved; });
+    contactSummary.hidden = !saved; editContact.hidden = !saved;
+    contactSummary.textContent = form.elements.name.value + ' · ' + form.elements.phone.value;
+  }
+  function loadContact() {
+    try {
+      const contact = JSON.parse(localStorage.getItem(contactKey));
+      if (typeof contact?.name === 'string' && contact.name.trim() && contact.name.length <= 100 && /^\+601(?:1\d{8}|[02-9]\d{7})$/.test(contact.phone)) {
+        form.elements.name.value = contact.name; form.elements.phone.value = contact.phone;
+        contactMode(true); return;
+      }
+    } catch {}
+    contactMode(false);
+  }
+  editContact.onclick = () => {
+    if (busy) return;
+    clearSaved(); requestId = crypto.randomUUID(); contactMode(false);
+    status.textContent = ''; form.elements.name.focus();
+  };
   const saveButton = form.querySelector('[type=submit]');
   const downloadLink = document.createElement('a');
   downloadLink.className = 'secondary-action'; downloadLink.textContent = 'Download JPG';
@@ -101,6 +127,7 @@
     snapshot = JSON.parse(JSON.stringify(v)); requestId = crypto.randomUUID();
     clearSaved();
     form.reset(); status.textContent = '';
+    loadContact();
     if(!logo){const asset=new Image();asset.src='/icon-192.png';try{await asset.decode();logo=asset;}catch{}}
     drawPoster();
     dialog.showModal();
@@ -119,6 +146,10 @@
     try {
       const response=await fetch('/api/app?action=download-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:requestId,name:form.elements.name.value.trim(),phone:'+'+phone,snapshot})});
       const data=await response.json(); if(!response.ok) throw new Error(data.error || 'Simpanan gagal.');
+      try {
+        localStorage.setItem(contactKey,JSON.stringify({name:form.elements.name.value.trim(),phone:'+'+phone}));
+        contactMode(true);
+      } catch { status.textContent = 'Browser tidak membenarkan maklumat disimpan pada peranti ini.'; }
       drawPoster();
       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.95));
       if(!blob) throw new Error('Gambar tidak dapat dijana. Cuba semula.');
