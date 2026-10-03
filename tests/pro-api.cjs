@@ -14,7 +14,7 @@ async function request(action,{body,method=body?'POST':'GET',cookie='__Host-carl
 test('anonymous calculator remains public; PRO requires separate agent session, not admin cookie',async()=>{
   global.fetch=()=>{throw new Error('No upstream expected');};
   assert.equal((await request('config',{cookie:''})).code,200);
-  for(const action of ['pro-session','pro-cases','pro-appointments','pro-history'])assert.equal((await request(action,{cookie:'__Host-carloan-admin=admin-token'})).code,401);
+  for(const action of ['pro-session','pro-cases','pro-appointments','pro-history','pro-realtime','admin-realtime'])assert.equal((await request(action,{cookie:''})).code,401);
 });
 test('agent login and registration use password auth and HttpOnly cookies, never admin grants',async()=>{
   global.fetch=async(url,opts)=>{assert.ok(url.includes('grant_type=password'));assert.equal(opts.headers.apikey,'public-key');return new Response(JSON.stringify({access_token:'access-token',refresh_token:'refresh-token',user}));};
@@ -50,6 +50,12 @@ test('PRO REST reads use verified user JWT and public key so RLS is not bypassed
   global.fetch=async(url,opts)=>{assert.equal(opts.headers.apikey,'public-key');assert.equal(opts.headers.Authorization,'Bearer access-token');return new Response(JSON.stringify(url.endsWith('/auth/v1/user')?user:[]));};
   assert.equal((await request('pro-cases')).code,200);assert.equal((await request('pro-appointments')).code,200);
   assert.equal((await request('admin')).code,401,'agent cookie not global admin session');
+});
+test('realtime credentials are owner-scoped and never disclose refresh or service keys',async()=>{
+  global.fetch=async()=>new Response(JSON.stringify(user));
+  const result=await request('pro-realtime');assert.equal(result.code,200);assert.equal(result.data.ownerId,user.id);assert.equal(result.data.accessToken,'access-token');assert.equal(result.headers['Cache-Control'],'private, no-store');assert.ok(!JSON.stringify(result.data).includes('service-secret'));
+  const publicResult=await request('public-realtime',{cookie:''});assert.equal(publicResult.code,200);assert.ok(!publicResult.data.accessToken);assert.deepEqual(publicResult.data.subscriptions,[{table:'car_live_signals',filter:'topic=eq.announcements'}]);
+  assert.equal((await request('admin-realtime')).code,401,'Agent cookie cannot obtain admin realtime credentials');
 });
 test('tab badges count exact private rows and apply follow-up and appointment filters',async()=>{
   const paths=[];global.fetch=async(url,opts)=>{

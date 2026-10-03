@@ -6,7 +6,7 @@
   const pane=document.createElement('section');pane.className='pro-pane';pane.hidden=true;shell.append(pane);
   const nav=document.createElement('nav');nav.className='pro-tabs';nav.setAttribute('aria-label','Workspace');nav.setAttribute('role','tablist');
   for(const [id,label,icon] of tabs){const b=document.createElement('button');b.type='button';b.dataset.tab=id;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(id==='calculator'));b.innerHTML=`<i data-lucide="${icon}"></i><span>${label}</span>${id==='calculator'?'':'<small class="pro-mark">PRO</small>'}`;b.onclick=()=>select(id);nav.append(b);}document.body.append(nav);
-  let current='calculator',agent=null,records=[],appointments=[],generation=0,authMode='register',comparison=null;
+  let current='calculator',agent=null,records=[],appointments=[],generation=0,authMode='register',comparison=null,redrawLive=null;
   const lens=document.createElement('span');lens.className='pro-tab-lens';lens.setAttribute('aria-hidden','true');nav.prepend(lens);
   const tabButtons=[...nav.querySelectorAll('button')];
   function positionLens(id){const index=tabs.findIndex(t=>t[0]===id);nav.style.setProperty('--tab-index',Math.max(0,index));}
@@ -47,7 +47,7 @@
   const due=(row,now=Date.now())=>!terminal.has(row.status)&&now-new Date(row.activity_at).getTime()>=3*86400000;
   let counts={},countPending=false;
   function badges(){for(const button of tabButtons){const badge=button.querySelector('.pro-mark');if(!badge)continue;const count=counts[button.dataset.tab]||0;badge.hidden=!!agent&&count===0;badge.textContent=agent?String(count):'PRO';badge.classList.toggle('pro-count',!!agent);}}
-  async function refreshCounts(){if(!agent||!agent.active||countPending)return;countPending=true;try{const next=await api('pro-counts');if(agent){counts=next;badges();}}catch(error){if(error.status===401){agent=null;counts={};badges();}}finally{countPending=false;}}
+  async function refreshCounts(){if(!agent||!agent.active||countPending)return;countPending=true;try{const next=await api('pro-counts');if(agent){counts=next;badges();}}catch(error){if(error.status===401||error.status===403){live.stop();expired();}}finally{countPending=false;}}
   async function api(action,body,params=''){
     const response=await fetch('/api/app?action='+action+params,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
     const data=await response.json();if(!response.ok){const error=new Error(data.error||data.message||'Sambungan gagal. Cuba lagi.');error.status=response.status;throw error;}return data;
@@ -60,9 +60,9 @@
   }
   async function linkDevice(){try{const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager.getSubscription();const token=localStorage.getItem('carloan-device-token');if(sub&&token)await api('pro-device',{subscription:sub.toJSON(),deviceToken:token});}catch(e){if(current==='appointment')message('Reminder belum disambungkan: '+e.message,'pro-error');}}
   let sessionPending=null;
-  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;badges();refreshCounts();return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
+  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;badges();refreshCounts();if(agent.active)live.start();return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
   async function select(id){revealTabs();if(!tabs.some(t=>t[0]===id))id='calculator';current=id;positionLens(id);const version=++generation;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));workspace.hidden=id!=='calculator';pane.hidden=id==='calculator';
-    if(id==='calculator'){icons();return;}
+    redrawLive=null;if(id==='calculator'){icons();return;}
     if(agent&&id!=='comparison'&&agent.active)render();
     else{pane.replaceChildren();const meta=tabs.find(t=>t[0]===id);heading(meta[1],meta[2]);const loading=el('div','pro-loading');loading.setAttribute('role','status');loading.setAttribute('aria-label','Memuatkan');loading.innerHTML='<i data-lucide="loader-circle"></i>';pane.append(loading);icons();}
     try{if(!agent)await restoreSession();if(version!==generation)return;if(!agent.active){pane.replaceChildren();heading('Ejen PRO','shield-check');message('Tempoh percuma telah tamat. Hubungi support. Tiada caj automatik.');return;}
@@ -70,7 +70,7 @@
       const result=await api(id==='appointment'?'pro-appointments':'pro-cases');if(version!==generation)return;
       if(id==='appointment'){appointments=result.records;const cases=await api('pro-cases');if(version!==generation)return;records=cases.records;}else records=result.records;
       if(!pane.contains(document.activeElement))render();linkDevice();refreshCounts();
-    }catch(error){if(version!==generation)return;if(error.status===401){agent=null;counts={};badges();auth();}else{pane.replaceChildren();heading(tabs.find(t=>t[0]===id)[1],tabs.find(t=>t[0]===id)[2]);message(error.message,'pro-error');pane.append(button('Cuba semula',()=>select(id)));}}
+    }catch(error){if(version!==generation)return;if(error.status===401){live.stop();agent=null;counts={};badges();auth();}else{pane.replaceChildren();heading(tabs.find(t=>t[0]===id)[1],tabs.find(t=>t[0]===id)[2]);message(error.message,'pro-error');pane.append(button('Cuba semula',()=>select(id)));}}
   }
   function render(){pane.replaceChildren();const meta=tabs.find(t=>t[0]===current);heading(meta[1],meta[2]);const toolbar=el('div','pro-toolbar'),search=el('input');search.type='search';search.placeholder='Cari nama / WhatsApp';search.setAttribute('aria-label','Cari rekod');toolbar.append(search);
     if(current!=='followup')toolbar.append(button(current==='appointment'?'+ Appointment':'+ Case',()=>edit(null,current==='appointment'), 'primary-action'));
@@ -78,16 +78,17 @@
     if(current==='followup')message('Case tanpa perubahan status atau remark selama 3 hari.');
     if(current==='appointment'){message('Reminder: 3 hari, 1 hari, 4 jam dan 1 jam sebelum appointment (waktu Malaysia). Aktifkan Notification dalam Tetapan app.');if(!agent.remindersReady)message('Reminder push belum diaktifkan di server. Appointment masih boleh direkodkan.','pro-error');}
     const list=el('div','pro-list');pane.append(list);
+    redrawLive=()=>{if(list.isConnected)draw();};
     function draw(){list.replaceChildren();const rows=(current==='appointment'?appointments:records).filter(r=>(current!=='followup'||due(r))&&(filter.value==='Semua'||r.status===filter.value)&&(r.name+' '+r.phone).toLowerCase().includes(search.value.toLowerCase()));if(!rows.length){list.append(el('p','pro-empty','Tiada rekod.'));return;}for(const r of rows){const card=el('article','pro-record');card.append(el('h3','',r.name),el('p','',r.phone),el('span','pro-status'+(terminal.has(r.status)||r.status==='Completed'?' terminal':''),r.status));if(current==='appointment'){card.append(el('p','',r.type+' · '+date(r.starts_at)),el('p','',r.location),el('p','',r.notes));}else{card.append(el('p','',[r.brand,r.model,r.variant].join(' ')),el('p','',r.color),el('p','',r.remark),el('p','pro-subtle','Aktiviti terakhir · '+date(r.activity_at)));}
       if(current!=='appointment'){card.querySelector('.pro-status').remove();card.append(quickCase(r,draw));}
       const actions=el('div','pro-toolbar');for(const [label,url,icon]of[['WhatsApp','https://wa.me/'+r.phone.slice(1),'message-circle'],['Call','tel:'+r.phone,'phone']]){const a=el('a');a.href=url;a.innerHTML=`<i data-lucide="${icon}"></i>`;a.append(document.createTextNode(label));if(label==='WhatsApp'){a.target='_blank';a.rel='noopener noreferrer';}actions.append(a);}actions.append(button('Edit',()=>edit(r,current==='appointment')));if(current!=='appointment')actions.append(button('Sejarah',()=>history(r)));card.append(actions);list.append(card);}icons();}search.oninput=draw;filter.onchange=draw;draw();if((current==='appointment'?appointments:records).length===1000)message('Memaparkan 1,000 rekod terkini sahaja.','pro-error');icons();
   }
   function quickCase(record,redraw){
     const form=el('form','pro-quick-case'),label=el('label','','Status'),select=el('select'),remark=el('textarea'),feedback=el('p','pro-subtle'),save=el('button','primary-action','Simpan');
-    select.setAttribute('aria-label','Status case '+record.name);for(const status of statuses)select.append(new Option(status,status));select.value=record.status;label.append(select);
+    form.dataset.remark=record.remark||'';form.dataset.status=record.status;select.setAttribute('aria-label','Status case '+record.name);for(const status of statuses)select.append(new Option(status,status));select.value=record.status;label.append(select);
     remark.setAttribute('aria-label','Remark '+record.name);remark.placeholder='Isi remark';remark.value=record.remark||'';remark.maxLength=2000;remark.rows=2;save.type='submit';feedback.setAttribute('role','status');form.append(label,remark,save,feedback);let busy=false;
     async function persist(statusOnly){if(busy)return;busy=true;select.disabled=true;save.disabled=true;feedback.textContent='Menyimpan...';const next={...record,status:select.value,remark:statusOnly?record.remark:remark.value};
-      try{const changed=next.status!==record.status||next.remark!==record.remark;await api('pro-case-save',next);Object.assign(record,next,changed?{activity_at:new Date().toISOString()}:{});feedback.className='pro-subtle';feedback.textContent='Disimpan';refreshCounts();if(current==='followup'&&changed)redraw();}
+      try{const changed=next.status!==record.status||next.remark!==record.remark;await api('pro-case-save',next);Object.assign(record,next,changed?{activity_at:new Date().toISOString()}:{});form.dataset.remark=record.remark||'';form.dataset.status=record.status;feedback.className='pro-subtle';feedback.textContent='Disimpan';refreshCounts();if(current==='followup'&&changed)redraw();}
       catch(error){if(statusOnly)select.value=record.status;feedback.textContent=error.message;feedback.className='pro-error';}
       finally{busy=false;select.disabled=false;save.disabled=false;}
     }
@@ -103,19 +104,35 @@
     form.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;save.disabled=true;status.textContent='Menyimpan...';const body={...Object.fromEntries(new FormData(form)),tab:current};body.id=requestID;if(appointment)body.starts_at=body.starts_at?new Date(body.starts_at+':00+08:00').toISOString():'';try{await api(appointment?'pro-appointment-save':'pro-case-save',body);d.close();await select(current);}catch(error){status.textContent=error.message;}finally{busy=false;save.disabled=false;}};
     d.showModal();icons();
   }
-  async function history(record){const d=dialog('Sejarah · '+record.name),status=el('p','pro-subtle','Memuatkan...');d.append(status);d.showModal();try{const {records:events}=await api('pro-history',undefined,'&id='+encodeURIComponent(record.id));status.remove();const list=el('ul','pro-history');for(const event of events)list.append(el('li','',date(event.created_at)+'\n'+event.status+'\n'+event.remark));d.append(list);}catch(e){status.textContent=e.message;}}
+  async function history(record){
+    const d=dialog('Sejarah · '+record.name),status=el('p','pro-subtle','Memuatkan...'),list=el('ul','pro-history');d.append(status,list);d.showModal();let version=0,timer;
+    async function update(){const request=++version;try{const {records:events}=await api('pro-history',undefined,'&id='+encodeURIComponent(record.id));if(!d.open||request!==version)return;status.textContent='';list.replaceChildren();for(const event of events)list.append(el('li','',date(event.created_at)+'\n'+event.status+'\n'+event.remark));}catch(error){if(d.open&&request===version)status.textContent=error.message;}}
+    const changed=()=>{clearTimeout(timer);timer=setTimeout(update,150);};addEventListener('carloan-pro-live',changed);d.addEventListener('close',()=>{version++;clearTimeout(timer);removeEventListener('carloan-pro-live',changed);});await update();
+  }
   window.proWorkspace={select,isFollowUp:due,openProfile:()=>{if(agent){window.agentProfile.open();return;}authMode='register';current='case';generation++;positionLens(current);nav.querySelectorAll('button').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.tab===current)));workspace.hidden=true;pane.hidden=false;revealTabs();auth();}};icons();
   addEventListener('carloan-notification-synced',()=>{if(agent)linkDevice();});
   navigator.serviceWorker?.addEventListener('message',event=>{if(['appointment','followup'].includes(event.data?.type)){event.ports?.[0]?.postMessage({handled:true});select(event.data.type==='followup'?'followup':'appointment');}});
-  let refreshing=false;
-  setInterval(()=>{if(!document.hidden)refreshCounts();},60000);
-  setInterval(async()=>{
-    if(current!=='followup'||!agent||refreshing||document.hidden)return;
-    refreshing=true;const version=generation;
-    try{const result=await api('pro-cases');if(version===generation){records=result.records;render();}}
-    catch(error){if(version===generation&&error.status===401){agent=null;auth();}}
-    finally{refreshing=false;}
-  },60000);
+  let refreshing=false,livePending=false,liveTimer=null;
+  function editing(){return Boolean(document.querySelector('dialog[open]'))||Boolean(pane.querySelector('.pro-list')?.contains(document.activeElement))||Array.from(pane.querySelectorAll('.pro-quick-case')).some(form=>form.querySelector('button').disabled||form.querySelector('textarea').value!==form.dataset.remark||form.querySelector('select').value!==form.dataset.status);}
+  function requestSync(){livePending=true;dispatchEvent(new Event('carloan-pro-live'));clearTimeout(liveTimer);liveTimer=setTimeout(syncLive,150);}
+  function expired(){agent=null;counts={};records=[];appointments=[];document.querySelectorAll('.pro-editor[open]').forEach(dialog=>dialog.close());badges();if(current!=='calculator')auth();}
+  const live=window.CarLoanLive(api,requestSync,expired);
+  async function syncLive(){
+    if(!agent||!agent.active||document.hidden||refreshing)return;
+    refreshCounts();if(!['case','followup','appointment'].includes(current)){livePending=false;return;}
+    if(editing())return;
+    refreshing=true;livePending=false;const version=generation;
+    try{
+      const cases=await api('pro-cases');const meetings=current==='appointment'?await api('pro-appointments'):null;
+      if(version!==generation||!agent)return;
+      if(editing()){livePending=true;return;}
+      const changed=JSON.stringify(records)!==JSON.stringify(cases.records)||meetings&&JSON.stringify(appointments)!==JSON.stringify(meetings.records);
+      records=cases.records;if(meetings)appointments=meetings.records;if(changed||current==='followup')redrawLive?.();
+    }catch(error){if(version===generation&&(error.status===401||error.status===403)){live.stop();expired();}}
+    finally{refreshing=false;if(livePending&&!editing())requestSync();}
+  }
+  document.addEventListener('focusout',()=>{if(livePending)requestSync();});
+  document.addEventListener('close',()=>{if(livePending)requestSync();},true);
   // Normal launches always open Calculator; notification deep links are explicit exceptions.
   const confirmation=new URLSearchParams(location.search).get('auth_token_hash');
   if(confirmation){history.replaceState(null,'',location.pathname);workspace.hidden=true;pane.hidden=false;pane.append(el('p','pro-subtle','Mengesahkan email...'));api('pro-confirm',{token_hash:confirmation}).then(result=>select(result.next)).catch(error=>{current='case';authMode='login';auth();message(error.message,'pro-error');});}

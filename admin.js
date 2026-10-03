@@ -4,6 +4,7 @@
   const icons = () => window.lucide?.createIcons();
   let busy = false;
   let pendingBroadcast = null;
+  let announcementSignature='';
   try { pendingBroadcast = localStorage.getItem('car-loan-admin-pending-push'); } catch {}
   function rememberBroadcast(id) {
     pendingBroadcast = id;
@@ -40,15 +41,15 @@
     try { await work(); } catch (error) { status(error.message); if (error.status === 401) showLogin(); }
     finally { busy = false; document.querySelectorAll('button').forEach(button => { button.disabled = button.dataset.unavailable === 'true'; }); }
   }
-  function showLogin() { $('#adminSessionLoading').hidden = true; $('#loginSection').hidden = false; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true; }
+  function showLogin() { live.stop(); $('#adminSessionLoading').hidden = true; $('#loginSection').hidden = false; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true; }
   function showChecking() {
     $('#loginSection').hidden = true; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true;
     $('#adminSessionLoading').hidden = false; $('#adminSessionRetry').hidden = true;
     $('.admin-session-spinner').hidden = false;
     $('#adminSessionMessage').textContent = 'Menyemak sesi...'; status('');
   }
-  async function loadStats() {
-    $('#statsStatus').textContent = 'Memuatkan statistik...';
+  async function loadStats(quiet=false) {
+    if(!quiet)$('#statsStatus').textContent = 'Memuatkan statistik...';
     try {
       const data = await api('stats');
       for (const period of data.traffic) {
@@ -61,6 +62,7 @@
       $('#phonePushCount').textContent = Number(data.phoneAppsWithNotifications).toLocaleString('ms-MY');
       $('#statsStatus').textContent = data.startedAt ? 'Data sejak ' + new Date(data.startedAt).toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' }) : 'Belum ada trafik direkodkan.';
     } catch (error) {
+      if(quiet){if(error.status===401)showLogin();return;}
       for (const id of ['visits1', 'visits7', 'visits30', 'notificationCount', 'phoneAppCount', 'phonePushCount']) $('#' + id).textContent = '—';
       for (const days of [1, 7, 30]) $('#devices' + days).textContent = '';
       $('#statsStatus').textContent = 'Statistik tidak tersedia. ' + error.message;
@@ -73,12 +75,14 @@
     if (link) { const url = new URL(link); if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Gunakan link HTTPS yang sah.'); a.href = url.href; a.textContent = label || 'Buka link'; a.hidden = false; }
     $('#confirmSend').hidden = true; $('#adminDialog').showModal(); icons();
   }
-  async function load() {
+  async function load(quiet=false) {
     const data = await api('admin');
     $('#adminSessionLoading').hidden = true;
-    $('#loginSection').hidden = true; $('#adminDashboard').hidden = false; $('#logoutButton').hidden = false;
+    $('#loginSection').hidden = true; if($('#adminDashboard').hidden)$('#adminDashboard').hidden = false; $('#logoutButton').hidden = false;
     $('#adminIdentity').textContent = data.email;
     $('#publishButton').disabled = !data.pushReady; $('#publishButton').dataset.unavailable = String(!data.pushReady);
+    const signature=JSON.stringify([data.announcements,data.pushReady,pendingBroadcast]);
+    if(signature!==announcementSignature){announcementSignature=signature;
     const list = $('#announcementList'); list.replaceChildren();
     if (!data.announcements.length) { const p = document.createElement('p'); p.className = 'admin-subtitle'; p.textContent = 'Belum ada hebahan.'; list.append(p); }
     for (const a of data.announcements) {
@@ -104,7 +108,9 @@
       row.append(badge, heading, text, date, controls); list.append(row);
     }
     icons();
-    await loadStats();
+    }
+    await loadStats(quiet);
+    live.start();
   }
   $('#loginForm').onsubmit = event => { event.preventDefault(); task(async () => {
     try { await api('login', { email: $('#adminEmail').value.trim(), password: $('#adminPassword').value }); await load(); status('Login berjaya.'); }
@@ -147,5 +153,15 @@
     }
   }
   $('#adminSessionRetry').onclick = () => task(initialise);
+  let syncPending=false,syncBusy=false,syncTimer;
+  function syncAdmin(){syncPending=true;clearTimeout(syncTimer);syncTimer=setTimeout(async()=>{
+    if($('#adminDashboard').hidden||document.hidden)return;
+    if(busy||syncBusy||document.querySelector('dialog[open]')){syncTimer=setTimeout(syncAdmin,500);return;}
+    syncBusy=true;syncPending=false;
+    try{await load(true);dispatchEvent(new Event('carloan-admin-live'));}
+    catch(error){if(error.status===401||error.status===403)showLogin();}
+    finally{syncBusy=false;if(syncPending)syncAdmin();}
+  },150);}
+  const live=window.CarLoanLive(api,syncAdmin,showLogin,'admin-realtime');
   task(initialise);
 })();

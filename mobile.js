@@ -320,7 +320,10 @@
     }
   }
   if (!notificationLaunch) checkAnnouncement();
-  announcementTimer = setInterval(() => { if (!document.hidden) checkAnnouncement(); }, 60000);
+  let announcementSyncPending=false;
+  const announcementLive=window.CarLoanLive(api,()=>{if(document.hidden)return;if(announcementLoading||locked||dialog.open&&!displayedAnnouncement){announcementSyncPending=true;return;}announcementSyncPending=false;checkAnnouncement();},()=>{},'public-realtime');
+  announcementLive.start();
+  dialog.addEventListener('close',()=>{if(!dialog.open&&announcementSyncPending){announcementSyncPending=false;checkAnnouncement();}});
   setInterval(checkInstallReminder, 15000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkInstallReminder(); checkAnnouncement(); } });
 })();

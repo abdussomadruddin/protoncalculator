@@ -44,3 +44,5 @@
 !assets/vendor/car-comparison.js
 !assets/vendor/pro-workspace.js
 !assets/vendor/pro-workspace.css
+!assets/vendor/supabase-realtime.js
+!assets/vendor/pro-live.js

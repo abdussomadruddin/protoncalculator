@@ -17,18 +17,21 @@ const root = path.resolve(__dirname, '..');
   let sessionRequested = false;
   let configFailure = false;
   let configReady = true;
+  let liveTotal=6,liveVisits=null;
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://admin.test/**', async route => {
     const url = new URL(route.request().url());
+    if(url.pathname.endsWith('/supabase-realtime.js'))return route.fulfill({contentType:'text/javascript',body:`window.liveCallbacks=[];window.CarLoanRealtime={RealtimeClient:class{async setAuth(){}channel(){return this}on(type,filter,callback){if(type==='postgres_changes'&&filter.event==='UPDATE')liveCallbacks.push(callback);return this}subscribe(callback){setTimeout(()=>callback('SUBSCRIBED'),0)}async removeAllChannels(){}async disconnect(){}}};`});
     if (url.pathname === '/api/app') {
       const action = url.searchParams.get('action');
       const body = route.request().postDataJSON();
       const respond = (data, status = 200) => route.fulfill({ status, json: data });
       if (action === 'manage-agent-list') return respond({records:[],hasNext:false});
+      if (action === 'admin-realtime') return loggedIn?respond({url:'https://test.supabase.co',key:'public',accessToken:'admin-only',subscriptions:[{table:'car_live_signals',filter:'topic=eq.admin'}]}):respond({},401);
       if (action === 'config') return configFailure ? respond({ error: 'Temporary connection error' }, 503) : respond({ ready: configReady, pushReady: true });
-      if (action === 'stats') return loggedIn ? respond({ startedAt: '2026-10-02T00:00:00Z', traffic: [1, 7, 30].map(days => ({ days, visits: days * 10, devices: days * 2 })), notifications: 42, phoneApps: 30, phoneAppsWithNotifications: 20 }) : respond({ error: 'Login required' }, 401);
-      if (action === 'agent-stats') return loggedIn ? respond({ total: 6, daily: Array.from({length:30},(_,i)=>({date:new Date(Date.UTC(2026,8,5+i)).toISOString().slice(0,10),count:i===0?2:i===29?3:0})) }) : respond({error:'Login required'},401);
+      if (action === 'stats') return loggedIn ? respond({ startedAt: '2026-10-02T00:00:00Z', traffic: [1, 7, 30].map(days => ({ days, visits: liveVisits??days * 10, devices: days * 2 })), notifications: 42, phoneApps: 30, phoneAppsWithNotifications: 20 }) : respond({ error: 'Login required' }, 401);
+      if (action === 'agent-stats') return loggedIn ? respond({ total: liveTotal, daily: Array.from({length:30},(_,i)=>({date:new Date(Date.UTC(2026,8,5+i)).toISOString().slice(0,10),count:i===0?2:i===29?3:0})) }) : respond({error:'Login required'},401);
       if (action === 'downloads') return loggedIn ? respond({records:[{id:'old',created_at:'2026-10-04T00:00:00Z',name:'Old Agent',whatsapp:'+60123456789',snapshot:{brand:'Proton',model:'S70',variant:'Lite'}},{id:'new',created_at:'2026-10-04T01:00:00Z',name:'Updated Agent',whatsapp:'+60198765432',snapshot:{kind:'agent-profile'}}],hasNext:false}) : respond({error:'Login required'},401);
       if (action === 'login') {
         assert.equal(body.email, 'admin@example.test');
@@ -124,6 +127,10 @@ const root = path.resolve(__dirname, '..');
     await page.getByRole('button',{name:'+ Daftar Ejen',exact:true}).waitFor();
     await tabs.getByRole('button',{name:'Hebahan',exact:true}).click();
     assert.equal(await page.locator('#announcementTitle').isVisible(),true);
+    await page.locator('#announcementTitle').fill('Unsaved admin draft');liveTotal=9;liveVisits=999;
+    await page.evaluate(()=>liveCallbacks.forEach(callback=>callback({})));
+    await page.waitForFunction(()=>document.querySelector('#agentTotal').textContent==='9'&&document.querySelector('#visits1').textContent==='999');
+    assert.equal(await page.locator('#announcementTitle').inputValue(),'Unsaved admin draft','Realtime must preserve admin form inputs');
     await page.locator('#announcementTitle').fill('Test only');
     await page.locator('#announcementMessage').fill('Mock recipients, never production.');
     await page.locator('#publishButton').click();

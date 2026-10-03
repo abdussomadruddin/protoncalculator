@@ -24,16 +24,17 @@
     $('agents7').setAttribute('aria-pressed', String(days === 7));
     $('agents30').setAttribute('aria-pressed', String(days === 30));
   }
-  async function load() {
+  async function load(quiet=false) {
     if (loading || $('adminDashboard').hidden) return;
-    loading = true; $('downloadsStatus').textContent = 'Memuatkan database ejen...';
+    loading = true; if(!quiet)$('downloadsStatus').textContent = 'Memuatkan database ejen...';
     try {
       const response = await fetch('/api/app?action=agent-stats', { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Database ejen tidak tersedia.');
       if ($('adminDashboard').hidden) return;
-      data = result; render();
+      if(JSON.stringify(data)!==JSON.stringify(result)){data = result; render();}
     } catch (error) {
+      if(quiet)return;
       data = null; $('agentTotal').textContent = '—'; $('agentChart').replaceChildren(); $('agentChartDates').replaceChildren();
       $('downloadsStatus').textContent = error.message;
     } finally { loading = false; }
@@ -45,4 +46,5 @@
     else { data = null; $('agentTotal').textContent = '—'; $('agentChart').replaceChildren(); $('agentChartDates').replaceChildren(); }
   }).observe($('adminDashboard'), { attributes: true, attributeFilter: ['hidden'] });
   load();
+  addEventListener('carloan-admin-live',()=>load(true));
 })();

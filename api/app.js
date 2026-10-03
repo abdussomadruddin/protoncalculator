@@ -75,7 +75,7 @@ function setAdminSession(res, accessToken, refreshToken) {
   res.setHeader('Set-Cookie', cookies.length === 1 ? cookies[0] : cookies);
 }
 async function requireAdmin(req, res) {
-  const token = adminToken(req);
+  let token = adminToken(req);
   let user;
   if (token && /^[A-Za-z0-9_.-]+$/.test(token)) {
     try { ({ data: user } = await supabase('/auth/v1/user', { service: false, authToken: token })); }
@@ -88,9 +88,10 @@ async function requireAdmin(req, res) {
     user = session?.user;
     if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses admin tidak dibenarkan.');
     setAdminSession(res, session.access_token, session.refresh_token);
+    token = session.access_token;
   }
   if (!user?.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.toLowerCase()) fail(403, 'Akses admin tidak dibenarkan.');
-  return user;
+  return {...user,realtimeToken:token};
 }
 function requirePost(req) {
   if (req.method !== 'POST') fail(405, 'Gunakan POST.');
@@ -137,6 +138,7 @@ module.exports = async function handler(req, res) {
     if (!['GET', 'POST'].includes(req.method)) fail(405, 'Kaedah tidak dibenarkan.');
     if (action === 'config' && req.method === 'GET') return res.status(200).json({ ready: configured(), pushReady: pushReady(), vapidPublicKey: pushReady() ? process.env.VAPID_PUBLIC_KEY : null });
     if (!configured()) fail(503, 'Backend Car Loan MY belum dikonfigurasi.');
+    if(action==='public-realtime'&&req.method==='GET') return res.status(200).json({url:process.env.SUPABASE_URL,key:process.env.SUPABASE_PUBLISHABLE_KEY,subscriptions:[{table:'car_live_signals',filter:'topic=eq.announcements'}]});
     if (req.method === 'POST') {
       requirePost(req);
       if (JSON.stringify(req.body || {}).length > 12000) fail(413, 'Mesej terlalu besar.');
@@ -235,6 +237,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req, res);
+    if(action==='admin-realtime'&&req.method==='GET') return res.status(200).json({url:process.env.SUPABASE_URL,key:process.env.SUPABASE_PUBLISHABLE_KEY,accessToken:user.realtimeToken,subscriptions:[{table:'car_live_signals',filter:'topic=eq.admin'}]});
     if (typeof action === 'string' && action.startsWith('manage-agent-')) return await require('../lib/agents.cjs')(req,res,{supabase,fail,uuid,adminEmail:process.env.ADMIN_EMAIL});
     if (action === 'agent-stats' && req.method === 'GET') {
       const now = new Date(), cutoff = now.toISOString(), firstRecorded = new Map();
