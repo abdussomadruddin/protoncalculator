@@ -17,12 +17,13 @@ const root = path.resolve(__dirname,'..');
       navigator.canShare = () => true;
       navigator.share = async data => { window.shareCalls = (window.shareCalls || 0)+1; window.sharedFile = data.files[0].name; window.sharedBlob = data.files[0]; if(window.shareCalls === 1) throw new DOMException('New tap required','NotAllowedError'); if(window.cancelShare) throw new DOMException('Cancelled','AbortError'); };
     });
-    const page = await context.newPage(); let saves = [], fail = true;
+    const page = await context.newPage(); let saves = [], profiles = [], fail = true, failProfile = false;
     const errors = []; page.on('pageerror',e=>errors.push(e.message));
     await page.route('https://comparison.test/**',async route => {
       const url = new URL(route.request().url());
       if(url.pathname === '/api/app') {
         if(url.searchParams.get('action') === 'download-request') { saves.push(route.request().postDataJSON()); return route.fulfill({status:fail?503:200,json:fail?{error:'Test database failure'}:{saved:true}}); }
+        if(url.searchParams.get('action') === 'agent-profile') { profiles.push(route.request().postDataJSON()); return route.fulfill({status:failProfile?503:200,json:failProfile?{error:'Test profile failure'}:{saved:true}}); }
         return route.fulfill({json:{ready:false}});
       }
       const file = path.join(root,url.pathname === '/'?'index.html':url.pathname.slice(1));
@@ -89,27 +90,41 @@ const root = path.resolve(__dirname,'..');
     await poster.locator('[type=submit]').dblclick();
     await page.waitForFunction(()=>document.querySelector('.poster-dialog button[type=submit]').textContent==='Simpan Gambar');
     assert.equal(saves.length,count+1);assert.equal(saves.at(-1).name,'Latest Agent');
+    assert.equal(saves.at(-1).phone,'+60198765432');assert.notEqual(saves.at(-1).id,saves[1].id);
     const sharedPixels=await page.evaluate(async()=>{const image=await createImageBitmap(window.sharedBlob),canvas=new OffscreenCanvas(1080,1350),ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);image.close();return Array.from(ctx.getImageData(900,1140,120,120).data);});
     assert.equal(jsQR(new Uint8ClampedArray(sharedPixels),120,120).data,'https://wa.me/60198765432');
     await poster.getByRole('button',{name:'Tutup',exact:true}).click();
     await page.evaluate(()=>window.agentProfile.open());
     const profile=page.locator('.profile-dialog');
     await profile.getByLabel('Nama',{exact:true}).fill('Saved Profile');
-    await profile.getByLabel('No WhatsApp',{exact:true}).fill('60123456789');
+    await profile.getByLabel('No WhatsApp',{exact:true}).fill('0187654321');
     assert.equal(await profile.locator('[type=file]').count(),0);
     assert.equal(await profile.getByText(/Logo syarikat/).count(),0);
+    failProfile=true;
     await profile.getByRole('button',{name:'Simpan profil',exact:true}).click();
+    await profile.getByText(/Test profile failure/).waitFor();
+    assert.equal(await profile.getByLabel('No WhatsApp',{exact:true}).inputValue(),'0187654321');
+    assert.equal(await page.evaluate(()=>window.agentProfile.read().phone),'+60198765432');
+    failProfile=false;
+    await profile.getByRole('button',{name:'Simpan profil',exact:true}).dblclick();
     await profile.waitFor({state:'hidden'});
+    assert.equal(profiles.length,2);assert.equal(profiles[0].id,profiles[1].id);assert.equal(profiles[1].phone,'+60187654321');
+    assert.equal(saves.length,count+1,'Saving profile must not require a poster download');
     await page.reload(); if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
     await page.evaluate(()=>window.agentProfile.open());
     assert.equal(await profile.getByLabel('Nama',{exact:true}).inputValue(),'Saved Profile');
+    assert.equal(await profile.getByLabel('No WhatsApp',{exact:true}).inputValue(),'+60187654321');
     assert.equal(await profile.locator('.company-preview').count(),0);
     await profile.getByRole('button',{name:'Tutup',exact:true}).click();
     await page.evaluate(()=>{Storage.prototype.setItem=()=>{throw new Error('Blocked storage');};});
     await page.evaluate(()=>window.agentProfile.open());
     await profile.getByLabel('Nama',{exact:true}).fill('Unsaved');
     await profile.getByRole('button',{name:'Simpan profil',exact:true}).click();
-    await profile.getByText(/Profil tidak dapat disimpan sepenuhnya/).waitFor();
+    await profile.getByText(/profil tidak dapat disimpan sepenuhnya/).waitFor();
+    assert.equal(profiles.at(-1).name,'Unsaved','Admin record saved even if device storage fails');
+    const profileCount=profiles.length;
+    await profile.getByRole('button',{name:'Simpan profil',exact:true}).click();
+    assert.equal(profiles.length,profileCount,'Storage retry must not duplicate admin record');
     await profile.getByRole('button',{name:'Tutup',exact:true}).click();
     await page.getByRole('button',{name:'Banding Kereta'}).click();
     for(const width of [320,390,768,1280]) {await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.querySelector('.comparison-dialog').scrollWidth<=document.querySelector('.comparison-dialog').clientWidth));}

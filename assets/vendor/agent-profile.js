@@ -1,6 +1,7 @@
 (() => {
   const key = 'car-loan-my-poster-contact';
   let storageWarning = '';
+  let pending = null;
   const normalize = value => {
     const phone = String(value).replace(/[\s()-]/g, '').replace(/^\+/, '').replace(/^0/, '60');
     return /^601(?:1\d{8}|[02-9]\d{7})$/.test(phone) ? '+' + phone : null;
@@ -14,15 +15,25 @@
   async function save(name, phone) {
     const normalized = normalize(phone);
     if (!name.trim() || name.trim().length > 100 || /[\x00-\x1f]/.test(name) || !normalized) throw new Error('Nama atau WhatsApp tidak sah.');
-    localStorage.setItem(key, JSON.stringify({ name: name.trim(), phone: normalized }));
+    const contact = { name: name.trim(), phone: normalized };
+    if (!pending || pending.name !== contact.name || pending.phone !== contact.phone) pending = { ...contact, id: crypto.randomUUID(), saved: false };
+    if (!pending.saved) {
+      status.textContent = 'Menyimpan profil...';
+      const response = await fetch('/api/app?action=agent-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout?.(15000), body: JSON.stringify({ id: pending.id, ...contact }) });
+      const data = await response.json();
+      if (!response.ok || data.saved !== true) throw new Error(data.error || 'Rekod profil tidak dapat disimpan. Cuba semula.');
+      pending.saved = true;
+    }
+    localStorage.setItem(key, JSON.stringify(contact));
     dispatchEvent(new Event('agent-profile-change'));
   }
   form.onsubmit = async event => {
     event.preventDefault();
-    const button = form.querySelector('button.primary-action'); button.disabled = true;
+    const button = form.querySelector('button.primary-action'); if (button.disabled) return; button.disabled = true;
+    form.querySelectorAll('input').forEach(input => { input.disabled = true; });
     try { await save(form.elements.name.value, form.elements.phone.value); dialog.close(); }
-    catch (error) { status.textContent = 'Profil tidak dapat disimpan sepenuhnya pada peranti: ' + error.message + ' Kalkulator masih boleh digunakan.'; }
-    finally { button.disabled = false; }
+    catch (error) { status.textContent = pending?.saved ? 'Rekod admin disimpan, tetapi profil tidak dapat disimpan sepenuhnya pada peranti: ' + error.message + ' Kalkulator masih boleh digunakan.' : error.message + ' Cuba semula; borang anda dikekalkan.'; }
+    finally { button.disabled = false; form.querySelectorAll('input').forEach(input => { input.disabled = false; }); }
   };
   window.agentProfile = { read, normalize, save, open: () => {
     const profile = read(); form.reset(); form.elements.name.value = profile.name || ''; form.elements.phone.value = profile.phone || ''; status.textContent = storageWarning; dialog.showModal(); window.lucide?.createIcons();

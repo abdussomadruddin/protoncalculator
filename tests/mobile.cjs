@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
   const relative = url.pathname === '/' ? 'index.html' : url.pathname === '/admin' ? 'admin.html' : url.pathname.slice(1);
   const file = path.resolve(root, relative);
   if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.statusCode = 404; return res.end(); }
-  const mime = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+  const mime = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
   res.setHeader('Content-Type', mime[path.extname(file)] || 'text/plain');
   // Same strict CSP as the production config.
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
@@ -65,6 +65,14 @@ async function mockInstalled(page, permission, existing = true, installed = true
     await desktop.locator('#appMenuButton').click();
     await desktop.clock.fastForward(300000);
     assert.equal(await desktop.locator('#dialogTitle').innerText(), 'Tetapan app');
+    const support=desktop.getByRole('link',{name:'Hubungi Support',exact:true});
+    assert.equal(await support.getAttribute('href'),'https://wa.me/60173559147');
+    assert.equal(await support.getAttribute('rel'),'noopener noreferrer');
+    await support.locator('img').evaluate(image=>image.decode());
+    assert.equal(await support.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(18, 140, 74)');
+    let supportOpened=false;
+    await desktop.context().route('https://wa.me/**',route=>{supportOpened=route.request().url()==='https://wa.me/60173559147';return route.fulfill({body:'Support link test only'});});
+    const popup=desktop.waitForEvent('popup');await support.click();const supportPage=await popup;await supportPage.waitForLoadState();assert.ok(supportOpened);await supportPage.close();
     await desktop.locator('#dialogClose').click();
     await desktop.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Jadikan Car Loan MY sebagai app');
     await desktop.screenshot({ path: '/tmp/car-loan-desktop-install.png' });
@@ -78,6 +86,10 @@ async function mockInstalled(page, permission, existing = true, installed = true
     assert.equal(await ios.locator('.install-steps li').count(), 4);
     assert.match(await ios.locator('#dialogDescription').innerText(), /Safari/);
     await ios.screenshot({ path: '/tmp/car-loan-ios-install.png', animations: 'disabled' });
+    await ios.locator('#dialogClose').click();
+    await ios.locator('#appMenuButton').click();
+    await ios.getByRole('link',{name:'Hubungi Support',exact:true}).locator('img').evaluate(image=>image.decode());
+    await ios.screenshot({path:'/tmp/car-loan-support-phone.png',animations:'disabled'});
     await ios.locator('#dialogClose').click();
     await ios.locator('.price-details summary').click();
     assert.equal(await ios.locator('.price-details-label').evaluate(el => getComputedStyle(el).transform), 'none');

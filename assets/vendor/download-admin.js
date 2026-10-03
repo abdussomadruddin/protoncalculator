@@ -10,8 +10,9 @@
       $('downloadsList').replaceChildren();
       for(const record of data.records) {
         const item = document.createElement('p');
-        const cars = record.snapshot.cars || [record.snapshot];
-        item.textContent = new Date(record.created_at).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'})+' | '+record.name+' | '+record.whatsapp+' | '+cars.map(car=>car.brand+' '+car.model+' '+car.variant).join(' vs ');
+        const cars = record.snapshot?.cars || [record.snapshot || {}];
+        const detail = record.snapshot?.kind === 'agent-profile' ? 'Profil Ejen' : cars.map(car=>[car.brand,car.model,car.variant].filter(Boolean).join(' ')).join(' vs ');
+        item.textContent = new Date(record.created_at).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'})+' | '+record.name+' | '+record.whatsapp+' | '+detail;
         $('downloadsList').append(item);
       }
       $('downloadsPrevious').disabled = page === 1;

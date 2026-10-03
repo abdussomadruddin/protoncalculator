@@ -84,6 +84,26 @@ test('activity validates input, hashes identifiers and never returns aggregate d
   };
   assert.deepEqual((await request('activity', { method: 'POST', body })).data, { recorded: true });
 });
+test('profile updates store new WhatsApp contacts immediately without a loan snapshot', async () => {
+  const body={id:'22222222-2222-4222-8222-222222222222',name:' Updated Agent ',phone:'0198765432'};
+  global.fetch=async(url,options)=>{
+    assert.ok(url.endsWith('/rpc/car_save_download'));
+    const payload=JSON.parse(options.body);
+    assert.equal(payload.person_name,'Updated Agent');
+    assert.equal(payload.whatsapp,'+60198765432');
+    assert.equal(payload.request_id,body.id);
+    assert.deepEqual(payload.calculation,{kind:'agent-profile'});
+    return new Response('true');
+  };
+  for(const phone of ['0198765432','60198765432','+60 19-876 5432']) assert.equal((await request('agent-profile',{method:'POST',body:{...body,phone}})).code,200);
+  assert.equal((await request('agent-profile',{method:'POST',body,origin:'https://evil.test'})).code,403);
+  for(const invalid of [{phone:'123'},{name:''},{name:'a'.repeat(101)},{id:'bad'}]) assert.equal((await request('agent-profile',{method:'POST',body:{...body,...invalid}})).code,400);
+  assert.equal((await request('agent-profile',{method:'POST',body:{...body,ignored:'x'.repeat(12001)}})).code,413);
+  global.fetch=async()=>new Response('false');
+  assert.equal((await request('agent-profile',{method:'POST',body})).code,429);
+  global.fetch=async()=>new Response('{}',{status:503});
+  assert.equal((await request('agent-profile',{method:'POST',body})).code,503);
+});
 test('comparison snapshots validate both cars and preserve legacy downloads', async () => {
   const car = {brand:'Proton',model:'S70',variant:'Lite',loanPeriod:9,inputPrice:60000,rebate:0,extras:0,insurance:0,insuranceOption:'exclude',depositAmount:0,loanAfterDeposit:60000,interestRate:2.5,ncd:0,baseMonthly:60000*1.175/84,selectedMonthly:60000*1.225/108,batteryMonthly:0};
   const body = {id:'11111111-1111-4111-8111-111111111111',name:'Test',phone:'0123456789',snapshot:{version:2,cars:[car,{...car,brand:'Perodua',batteryMonthly:275}]}};
@@ -97,11 +117,12 @@ test('admin Excel exports two cars as text-safe contact rows', async () => {
   const car = {brand:'Proton',model:'S70',variant:'Lite',loanPeriod:9,inputPrice:60000,selectedMonthly:700};
   global.fetch = async url => {
     if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-01-01'}));
-    return new Response(JSON.stringify([{id:'test',created_at:'2026-10-04T00:00:00Z',name:'=HYPERLINK("bad")',whatsapp:'+60123456789',snapshot:{version:2,cars:[car,{...car,brand:'Perodua'}]}}]));
+    return new Response(JSON.stringify([{id:'test',created_at:'2026-10-04T00:00:00Z',name:'=HYPERLINK("bad")',whatsapp:'+60123456789',snapshot:{version:2,cars:[car,{...car,brand:'Perodua'}]}},{id:'profile',created_at:'2026-10-04T01:00:00Z',name:'Updated Agent',whatsapp:'+60198765432',snapshot:{kind:'agent-profile'}}]));
   };
   const res=await request('downloads-excel',{cookie:'__Host-carloan-admin=valid.jwt.token'});
   const ExcelJS=require('exceljs'),book=new ExcelJS.Workbook();await book.xlsx.load(res.data);
   const sheet=book.worksheets[0];assert.equal(sheet.getCell('C2').type,ExcelJS.ValueType.String);assert.equal(sheet.getCell('D2').value,'+60123456789');assert.equal(sheet.getCell('E2').value,'Proton');assert.equal(sheet.getCell('T2').value,'Perodua');
+  assert.equal(sheet.getCell('D3').value,'+60198765432');assert.equal(sheet.getCell('E3').value,'');assert.equal(sheet.getCell('AI3').value,'Profil Ejen');
 });
 test('only authenticated admin can retrieve aggregated statistics', async () => {
   global.fetch = async url => {

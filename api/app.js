@@ -138,13 +138,18 @@ module.exports = async function handler(req, res) {
       if (JSON.stringify(req.body || {}).length > 12000) fail(413, 'Mesej terlalu besar.');
     }
     const body = req.body || {};
-    if (action === 'download-request') {
+    if (action === 'download-request' || action === 'agent-profile') {
       requirePost(req);
       const id = uuid(body.id);
       const name = typeof body.name === 'string' ? body.name.trim() : '';
       const rawPhone = typeof body.phone === 'string' ? body.phone.replace(/[\s()-]/g, '').replace(/^\+/, '').replace(/^0/, '60') : '';
       const phone = '+' + rawPhone;
       if (!name || name.length > 100 || /[\x00-\x1f]/.test(name) || !/^\+601(?:1\d{8}|[02-9]\d{7})$/.test(phone)) fail(400, 'Nama atau WhatsApp tidak sah.');
+      if (action === 'agent-profile') {
+        const { data } = await supabase('/rest/v1/rpc/car_save_download', { method: 'POST', body: { request_id: id, person_name: name, whatsapp: phone, calculation: { kind: 'agent-profile' }, client_hash: hash(String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')) } });
+        if (!data) fail(429, 'Terlalu banyak permintaan. Cuba sebentar lagi.');
+        return res.status(200).json({ saved: true });
+      }
       const incoming = body.snapshot;
       if (incoming?.cars && (incoming.version !== 2 || !Array.isArray(incoming.cars) || incoming.cars.length < 1 || incoming.cars.length > 2)) fail(400, 'Snapshot perbandingan tidak sah.');
       const cars = incoming?.cars || [incoming];
@@ -236,14 +241,14 @@ module.exports = async function handler(req, res) {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Rekod Download');
       const keys = ['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','ncd','depositAmount','loanAfterDeposit','interestRate','baseMonthly','selectedMonthly','batteryMonthly'];
-      sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys.map(k=>'A '+k),...keys.map(k=>'B '+k)]);
+      sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys.map(k=>'A '+k),...keys.map(k=>'B '+k),'Jenis rekod']);
       const cutoff = new Date().toISOString();
       for (let offset = 0; ; offset += 500) {
         const { data } = await supabase('/rest/v1/car_download_contacts?select=id,created_at,name,whatsapp,snapshot&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
         for (const row of data) {
           // Explicit string values are written as XLSX text, never formulas.
-          const cars = row.snapshot.cars || [row.snapshot];
-          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => cars[0][k] ?? ''),...keys.map(k=>cars[1]?.[k] ?? '')]);
+          const cars = row.snapshot?.cars || [row.snapshot || {}];
+          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => cars[0][k] ?? ''),...keys.map(k=>cars[1]?.[k] ?? ''),row.snapshot?.kind === 'agent-profile' ? 'Profil Ejen' : 'Download poster']);
           added.getCell(4).numFmt = '@';
         }
         if (data.length < 500) break;

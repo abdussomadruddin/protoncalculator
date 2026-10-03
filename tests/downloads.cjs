@@ -9,7 +9,7 @@ const { randomUUID } = require('node:crypto');
     await db.exec(fs.readFileSync('backend/downloads.sql','utf8'));
     await db.exec(fs.readFileSync('backend/downloads.sql','utf8'));
     const id=randomUUID();
-    const save=async (request=id,name='Test',client='client') => (await db.query('select public.car_save_download($1,$2,$3,$4,$5) as saved',[request,name,'+60123456789',{model:'Test'},client])).rows[0].saved;
+    const save=async (request=id,name='Test',client='client',phone='+60123456789') => (await db.query('select public.car_save_download($1,$2,$3,$4,$5) as saved',[request,name,phone,{model:'Test'},client])).rows[0].saved;
     assert.equal(await save(),true); assert.equal(await save(),true);
     assert.equal(await save(id,'Changed'),false);
     assert.equal((await db.query('select count(*) from public.car_download_requests')).rows[0].count,1);
@@ -18,6 +18,22 @@ const { randomUUID } = require('node:crypto');
     assert.equal(await save(randomUUID(),'Test','other-client'),true);
     assert.equal((await db.query('select count(*) from public.car_download_contacts')).rows[0].count,1);
     assert.equal((await db.query('select count(*) from public.car_download_requests')).rows[0].count,11);
+    const changedId=randomUUID();
+    assert.equal(await save(changedId,'Updated Agent','profile-client','+60198765432'),true);
+    assert.equal(await save(changedId,'Updated Agent','profile-client','+60198765432'),true);
+    assert.equal((await db.query('select count(*) from public.car_download_requests')).rows[0].count,12);
+    assert.deepEqual((await db.query('select whatsapp,name from public.car_download_contacts order by whatsapp')).rows,[
+      {whatsapp:'+60123456789',name:'Test'},
+      {whatsapp:'+60198765432',name:'Updated Agent'}
+    ]);
+    assert.equal(await save(randomUUID(),'Updated Name','profile-client','+60198765432'),true);
+    assert.equal((await db.query('select count(*) from public.car_download_contacts')).rows[0].count,2);
+    assert.equal((await db.query("select name from public.car_download_contacts where whatsapp='+60198765432'")).rows[0].name,'Updated Name');
+    const profileId=randomUUID();
+    const profileSave=async()=> (await db.query('select public.car_save_download($1,$2,$3,$4,$5) as saved',[profileId,'Profile Only','+60187654321',{kind:'agent-profile'},'profile-client'])).rows[0].saved;
+    assert.equal(await profileSave(),true);assert.equal(await profileSave(),true);
+    assert.equal((await db.query('select count(*) from public.car_download_contacts')).rows[0].count,3);
+    assert.deepEqual((await db.query("select name,snapshot from public.car_download_contacts where whatsapp='+60187654321'")).rows[0],{name:'Profile Only',snapshot:{kind:'agent-profile'}});
     for(const role of ['anon','authenticated']) {
       const result=await db.query("select has_table_privilege($1,'public.car_download_requests','select') as read, has_function_privilege($1,'public.car_save_download(uuid,text,text,jsonb,text)','execute') as execute",[role]);
       assert.equal(result.rows[0].read,false);assert.equal(result.rows[0].execute,false);

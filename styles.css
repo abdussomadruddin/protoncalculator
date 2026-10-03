@@ -188,6 +188,9 @@ button{transition:background .18s,transform .18s}
 .dialog-menu{display:grid;gap:10px}
 .dialog-menu button,.dialog-menu a{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:14px;text-decoration:none;font-size:14px;text-align:left;min-height:50px}
 .dialog-menu svg{color:var(--green)}
+.dialog-menu .support-whatsapp{background:#128c4a;border-color:#128c4a;color:#fff;font-weight:700}
+.dialog-menu .support-whatsapp:hover{background:#0b783c;border-color:#0b783c}
+.support-whatsapp img{width:22px;height:22px;flex:none;object-fit:contain}
 .app-notice{position:fixed;top:calc(12px + env(safe-area-inset-top));left:14px;right:14px;max-width:520px;margin:auto;background:#fff4d9;border:1px solid #e3cc8b;padding:12px;display:flex;align-items:center;gap:10px;z-index:30;border-radius:8px;box-shadow:0 6px 30px #2824141a;font-size:13px;line-height:1.5}
 .app-notice>span{flex:1}
 .app-notice .icon-button{width:36px;height:36px;min-height:36px;background:transparent;border:0}

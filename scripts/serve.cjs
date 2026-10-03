@@ -21,7 +21,7 @@ http.createServer(async (req, res) => {
   const relative = url.pathname === '/' ? 'index.html' : url.pathname === '/admin' ? 'admin.html' : url.pathname.slice(1);
   const file = path.resolve(root, relative);
   if (!file.startsWith(root + path.sep) || (!files.has(relative) && !/^assets\/(icons|vendor)\/[a-zA-Z0-9_.-]+$/.test(relative)) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); res.end('Not found'); return; }
-  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
   res.setHeader('Content-Type', mime[path.extname(file)] || 'text/plain');
   fs.createReadStream(file).pipe(res);
 }).listen(port, '127.0.0.1', () => console.log('Car Loan MY preview: http://localhost:' + port + ' | Admin: http://localhost:' + port + '/admin'));

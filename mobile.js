@@ -213,6 +213,10 @@
       const icon = document.createElement('i'); icon.dataset.lucide = iconName;
       button.append(icon, document.createTextNode(label)); button.onclick = handler; menu.append(button);
     }
+    const support = document.createElement('a'); support.className = 'support-whatsapp';
+    support.href = 'https://wa.me/60173559147'; support.target = '_blank'; support.rel = 'noopener noreferrer';
+    const whatsapp = document.createElement('img'); whatsapp.src = '/assets/icons/whatsapp.svg'; whatsapp.alt = ''; whatsapp.width = 22; whatsapp.height = 22;
+    support.append(whatsapp, document.createTextNode('Hubungi Support')); menu.append(support);
     content.append(menu); icons();
   }
   async function checkAnnouncement(force = false, id) {
