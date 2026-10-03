@@ -51,6 +51,16 @@ test('PRO REST reads use verified user JWT and public key so RLS is not bypassed
   assert.equal((await request('pro-cases')).code,200);assert.equal((await request('pro-appointments')).code,200);
   assert.equal((await request('admin')).code,401,'agent cookie not global admin session');
 });
+test('tab badges count exact private rows and apply follow-up and appointment filters',async()=>{
+  const paths=[];global.fetch=async(url,opts)=>{
+    assert.equal(opts.headers.apikey,'public-key');assert.equal(opts.headers.Authorization,'Bearer access-token');
+    if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify(user));
+    paths.push(url);assert.equal(opts.headers.Prefer,'count=exact');assert.ok(url.includes('limit=0'));
+    return new Response('[]',{headers:{'content-range':'*/'+[1200,3,0][paths.length-1]}});
+  };
+  const result=await request('pro-counts');assert.equal(result.code,200);assert.deepEqual(result.data,{case:1200,followup:3,appointment:0});assert.ok(paths[1].includes('status=not.in.(Rejected,Delivered,Cancelled)'));assert.ok(paths[1].includes('activity_at=lte.'));assert.ok(paths[2].includes('status=eq.Scheduled'));assert.ok(paths[2].includes('starts_at=gte.'));
+  assert.equal((await request('pro-counts',{cookie:''})).code,401);
+});
 test('case validation, owner assigned server-side and forbidden statuses rejected',async()=>{
   let writes=[];global.fetch=async(url,opts)=>{if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify(user));if(opts.method==='POST')writes.push(JSON.parse(opts.body));return new Response('[]');};
   const body={id,name:'Customer',phone:'0173559147',brand:'Proton',model:'S70',variant:'Lite',color:'White',remark:'Ready',status:'Document collected',owner_id:'attacker'};

@@ -135,7 +135,7 @@ const root = path.resolve(__dirname, '..');
     for (const width of [320, 390, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No overflow at ' + width);
-      assert.ok(await page.locator('#statsRefresh').evaluate(element => element.getBoundingClientRect().height >= 44), 'Touch target at ' + width);
+      assert.equal(await page.locator('#statsRefresh,#refreshButton').count(),0,'Refresh controls removed at '+width);
     }
     await page.screenshot({ path: '/tmp/car-loan-admin-publish.png' });
     await page.locator('#logoutButton').click();

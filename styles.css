@@ -113,7 +113,7 @@ textarea{min-height:390px;padding:14px;line-height:1.65;white-space:pre-wrap;res
  .headline-payment strong{font-size:34px}
  .estimate-link{display:inline-block;margin-top:6px}
  .form-grid>label:has(#modelSelect),.form-grid>label:has(#variantSelect){grid-column:1/-1}
- .actions{position:fixed;z-index:10;left:0;right:0;bottom:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:#fffffffa;border-top:1px solid var(--line);box-shadow:0 -4px 20px #20252b08}
+ .actions{position:fixed;z-index:10;left:0;right:0;bottom:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:transparent;border-top:0;box-shadow:none}
  .copy-state{right:20px}
  .summary-grid>div:nth-child(n+4) strong{font-size:16px}
  .summary-heading{flex-wrap:wrap}

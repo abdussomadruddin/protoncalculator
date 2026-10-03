@@ -129,8 +129,6 @@
   }); };
   $('#previewButton').onclick = () => { try { preview($('#announcementTitle').value || 'Tajuk hebahan', $('#announcementMessage').value || 'Mesej hebahan', $('#announcementLink').value.trim(), $('#announcementLabel').value); } catch (error) { status(error.message); } };
   $('#adminDialogClose').onclick = () => $('#adminDialog').close();
-  $('#refreshButton').onclick = () => task(async () => { await load(); status('Rekod dikemas kini.'); });
-  $('#statsRefresh').onclick = () => task(loadStats);
   $('#logoutButton').onclick = () => task(async () => { await api('logout', {}); showLogin(); status('Anda telah logout.'); });
   icons();
   async function initialise() {

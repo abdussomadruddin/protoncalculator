@@ -11,6 +11,16 @@
   const tabButtons=[...nav.querySelectorAll('button')];
   function positionLens(id){const index=tabs.findIndex(t=>t[0]===id);nav.style.setProperty('--tab-index',Math.max(0,index));}
   let gesture=null,suppressClickUntil=0;
+  let lastScroll=Math.max(0,scrollY),scrollTravel=0,scrollDirection=0,scrollFrame=0;
+  function revealTabs(){nav.classList.remove('is-scroll-hidden');nav.inert=false;}
+  addEventListener('scroll',()=>{if(scrollFrame)return;scrollFrame=requestAnimationFrame(()=>{
+    scrollFrame=0;const y=Math.max(0,Math.min(scrollY,document.documentElement.scrollHeight-innerHeight)),delta=y-lastScroll;lastScroll=y;
+    if(document.querySelector('dialog[open]')||gesture||nav.querySelector(':focus-visible')){revealTabs();scrollTravel=0;return;}
+    if(y<32){revealTabs();scrollTravel=0;return;}
+    const direction=Math.sign(delta);if(!direction)return;if(direction!==scrollDirection)scrollTravel=0;scrollDirection=direction;scrollTravel+=Math.abs(delta);
+    if(scrollTravel>=(direction>0?24:10)){const hide=direction>0;nav.classList.toggle('is-scroll-hidden',hide);nav.inert=hide;scrollTravel=0;}
+  });},{passive:true});
+  nav.addEventListener('focusin',revealTabs);
   nav.addEventListener('pointerdown',event=>{
     if(event.button!==0||!event.target.closest('button'))return;
     const index=tabButtons.indexOf(event.target.closest('button'));
@@ -34,6 +44,9 @@
   const button=(label,run,cls='secondary-action')=>{const b=el('button',cls,label);b.type='button';b.onclick=run;return b;};
   const date=value=>new Date(value).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur',dateStyle:'medium',timeStyle:'short'});
   const due=(row,now=Date.now())=>!terminal.has(row.status)&&now-new Date(row.activity_at).getTime()>=3*86400000;
+  let counts={},countPending=false;
+  function badges(){for(const button of tabButtons){const badge=button.querySelector('.pro-mark');if(!badge)continue;const count=counts[button.dataset.tab]||0;badge.hidden=!!agent&&count===0;badge.textContent=agent?String(count):'PRO';badge.classList.toggle('pro-count',!!agent);}}
+  async function refreshCounts(){if(!agent||!agent.active||countPending)return;countPending=true;try{const next=await api('pro-counts');if(agent){counts=next;badges();}}catch(error){if(error.status===401){agent=null;counts={};badges();}}finally{countPending=false;}}
   async function api(action,body,params=''){
     const response=await fetch('/api/app?action='+action+params,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
     const data=await response.json();if(!response.ok){const error=new Error(data.error||data.message||'Sambungan gagal. Cuba lagi.');error.status=response.status;throw error;}return data;
@@ -46,8 +59,8 @@
   }
   async function linkDevice(){try{const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager.getSubscription();const token=localStorage.getItem('carloan-device-token');if(sub&&token)await api('pro-device',{subscription:sub.toJSON(),deviceToken:token});}catch(e){if(current==='appointment')message('Reminder belum disambungkan: '+e.message,'pro-error');}}
   let sessionPending=null;
-  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
-  async function select(id){if(!tabs.some(t=>t[0]===id))id='calculator';current=id;positionLens(id);const version=++generation;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));workspace.hidden=id!=='calculator';pane.hidden=id==='calculator';
+  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;badges();refreshCounts();return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
+  async function select(id){revealTabs();if(!tabs.some(t=>t[0]===id))id='calculator';current=id;positionLens(id);const version=++generation;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));workspace.hidden=id!=='calculator';pane.hidden=id==='calculator';
     if(id==='calculator'){icons();return;}
     if(agent&&id!=='comparison'&&agent.active)render();
     else{pane.replaceChildren();const meta=tabs.find(t=>t[0]===id);heading(meta[1],meta[2]);const loading=el('div','pro-loading');loading.setAttribute('role','status');loading.setAttribute('aria-label','Memuatkan');loading.innerHTML='<i data-lucide="loader-circle"></i>';pane.append(loading);icons();}
@@ -55,10 +68,10 @@
       if(id==='comparison'){pane.replaceChildren();heading('Comparison','git-compare-arrows');const capture=button('Gunakan kiraan calculator semasa',()=>{comparison.replaceChildren();window.carComparison.mount(comparison);icons();});pane.append(capture);if(!comparison){comparison=el('div','pro-comparison');window.carComparison.mount(comparison);}pane.append(comparison);icons();return;}
       const result=await api(id==='appointment'?'pro-appointments':'pro-cases');if(version!==generation)return;
       if(id==='appointment'){appointments=result.records;const cases=await api('pro-cases');if(version!==generation)return;records=cases.records;}else records=result.records;
-      if(!pane.contains(document.activeElement))render();linkDevice();
-    }catch(error){if(version!==generation)return;if(error.status===401){agent=null;auth();}else{pane.replaceChildren();heading(tabs.find(t=>t[0]===id)[1],tabs.find(t=>t[0]===id)[2]);message(error.message,'pro-error');pane.append(button('Cuba semula',()=>select(id)));}}
+      if(!pane.contains(document.activeElement))render();linkDevice();refreshCounts();
+    }catch(error){if(version!==generation)return;if(error.status===401){agent=null;counts={};badges();auth();}else{pane.replaceChildren();heading(tabs.find(t=>t[0]===id)[1],tabs.find(t=>t[0]===id)[2]);message(error.message,'pro-error');pane.append(button('Cuba semula',()=>select(id)));}}
   }
-  function render(){pane.replaceChildren();const meta=tabs.find(t=>t[0]===current);heading(meta[1],meta[2]);const toolbar=el('div','pro-toolbar'),search=el('input');search.type='search';search.placeholder='Cari nama / WhatsApp';search.setAttribute('aria-label','Cari rekod');toolbar.append(search,button('Refresh',()=>select(current)));
+  function render(){pane.replaceChildren();const meta=tabs.find(t=>t[0]===current);heading(meta[1],meta[2]);const toolbar=el('div','pro-toolbar'),search=el('input');search.type='search';search.placeholder='Cari nama / WhatsApp';search.setAttribute('aria-label','Cari rekod');toolbar.append(search);
     if(current!=='followup')toolbar.append(button(current==='appointment'?'+ Appointment':'+ Case',()=>edit(null,current==='appointment'), 'primary-action'));
     const filter=el('select');filter.setAttribute('aria-label','Status');const opts=current==='appointment'?['Semua','Scheduled','Completed','Cancelled']:['Semua',...statuses];for(const s of opts)filter.append(new Option(s,s));toolbar.append(filter);pane.append(toolbar);
     if(current==='followup')message('Case tanpa perubahan status atau remark selama 3 hari.');
@@ -73,7 +86,7 @@
     select.setAttribute('aria-label','Status case '+record.name);for(const status of statuses)select.append(new Option(status,status));select.value=record.status;label.append(select);
     remark.setAttribute('aria-label','Remark '+record.name);remark.placeholder='Isi remark';remark.value=record.remark||'';remark.maxLength=2000;remark.rows=2;save.type='submit';feedback.setAttribute('role','status');form.append(label,remark,save,feedback);let busy=false;
     async function persist(statusOnly){if(busy)return;busy=true;select.disabled=true;save.disabled=true;feedback.textContent='Menyimpan...';const next={...record,status:select.value,remark:statusOnly?record.remark:remark.value};
-      try{const changed=next.status!==record.status||next.remark!==record.remark;await api('pro-case-save',next);Object.assign(record,next,changed?{activity_at:new Date().toISOString()}:{});feedback.className='pro-subtle';feedback.textContent='Disimpan';if(current==='followup'&&changed)redraw();}
+      try{const changed=next.status!==record.status||next.remark!==record.remark;await api('pro-case-save',next);Object.assign(record,next,changed?{activity_at:new Date().toISOString()}:{});feedback.className='pro-subtle';feedback.textContent='Disimpan';refreshCounts();if(current==='followup'&&changed)redraw();}
       catch(error){if(statusOnly)select.value=record.status;feedback.textContent=error.message;feedback.className='pro-error';}
       finally{busy=false;select.disabled=false;save.disabled=false;}
     }
@@ -94,6 +107,7 @@
   addEventListener('carloan-notification-synced',()=>{if(agent)linkDevice();});
   navigator.serviceWorker?.addEventListener('message',event=>{if(['appointment','followup'].includes(event.data?.type)){event.ports?.[0]?.postMessage({handled:true});select(event.data.type==='followup'?'followup':'appointment');}});
   let refreshing=false;
+  setInterval(()=>{if(!document.hidden)refreshCounts();},60000);
   setInterval(async()=>{
     if(current!=='followup'||!agent||refreshing||document.hidden)return;
     refreshing=true;const version=generation;
