@@ -1,6 +1,10 @@
 .admin-shell{max-width:1050px;margin:auto;padding:28px 24px calc(40px + env(safe-area-inset-bottom))}
 .admin-status{font-size:14px;line-height:1.6;color:#a23647;overflow-wrap:anywhere;white-space:pre-wrap}
 .admin-status:empty{display:none}
+.admin-session-loading{text-align:center;padding:48px 16px;color:var(--muted)}
+.admin-session-spinner{display:inline-block;width:28px;height:28px;border:3px solid #c7d8e3;border-top-color:#087e68;border-radius:50%;animation:admin-session-spin .8s linear infinite}
+@keyframes admin-session-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.admin-session-spinner{animation:none}}
 .admin-analytics{padding:24px 0;border-top:1px solid var(--line)}
 .analytics-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .traffic-periods{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:24px 0}

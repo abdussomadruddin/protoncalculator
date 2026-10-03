@@ -12,6 +12,11 @@ const root = path.resolve(__dirname, '..');
   let broadcastCalls = 0;
   let publishCalls = 0;
   let interrupted = false;
+  let releaseSession;
+  let sessionGate = new Promise(resolve => { releaseSession = resolve; });
+  let sessionRequested = false;
+  let configFailure = false;
+  let configReady = true;
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://admin.test/**', async route => {
@@ -20,7 +25,7 @@ const root = path.resolve(__dirname, '..');
       const action = url.searchParams.get('action');
       const body = route.request().postDataJSON();
       const respond = (data, status = 200) => route.fulfill({ status, json: data });
-      if (action === 'config') return respond({ ready: true, pushReady: true });
+      if (action === 'config') return configFailure ? respond({ error: 'Temporary connection error' }, 503) : respond({ ready: configReady, pushReady: true });
       if (action === 'stats') return loggedIn ? respond({ startedAt: '2026-10-02T00:00:00Z', traffic: [1, 7, 30].map(days => ({ days, visits: days * 10, devices: days * 2 })), notifications: 42, phoneApps: 30, phoneAppsWithNotifications: 20 }) : respond({ error: 'Login required' }, 401);
       if (action === 'downloads') return loggedIn ? respond({records:[{id:'old',created_at:'2026-10-04T00:00:00Z',name:'Old Agent',whatsapp:'+60123456789',snapshot:{brand:'Proton',model:'S70',variant:'Lite'}},{id:'new',created_at:'2026-10-04T01:00:00Z',name:'Updated Agent',whatsapp:'+60198765432',snapshot:{kind:'agent-profile'}}],hasNext:false}) : respond({error:'Login required'},401);
       if (action === 'login') {
@@ -28,7 +33,11 @@ const root = path.resolve(__dirname, '..');
         assert.equal(body.password, 'test-password-only');
         loggedIn = true; return respond({ email: body.email });
       }
-      if (action === 'admin') return loggedIn ? respond({ email: 'admin@example.test', pushReady: true, announcements: published ? [published] : [] }) : respond({ error: 'Login required' }, 401);
+      if (action === 'admin') {
+        sessionRequested = true;
+        await sessionGate;
+        return loggedIn ? respond({ email: 'admin@example.test', pushReady: true, announcements: published ? [published] : [] }) : respond({ error: 'Login required' }, 401);
+      }
       if (action === 'publish') {
         publishCalls++;
         published = { id: 'test-announcement', title: body.title, message: body.message, active: true, created_at: new Date().toISOString() };
@@ -46,7 +55,13 @@ const root = path.resolve(__dirname, '..');
     await route.fulfill({ body: fs.readFileSync(file), contentType: ({ '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png' })[path.extname(file)] });
   });
   try {
-    await page.goto('https://admin.test/admin');
+    await page.goto('https://admin.test/admin', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => document.querySelector('#loginForm button[type=submit]').disabled);
+    assert.equal(await page.locator('#loginSection').isVisible(), false);
+    assert.equal(await page.locator('#adminDashboard').isVisible(), false);
+    assert.equal(await page.locator('#adminSessionLoading').isVisible(), true);
+    releaseSession();
+    await page.locator('#loginSection').waitFor({ state: 'visible' });
     await page.waitForFunction(() => !document.querySelector('#loginForm button[type=submit]').disabled);
     await page.locator('#adminEmail').fill('admin@example.test');
     await page.locator('#adminPassword').fill('test-password-only');
@@ -58,6 +73,27 @@ const root = path.resolve(__dirname, '..');
     await page.locator('#loginForm button[type=submit]').click();
     await page.waitForFunction(() => !document.querySelector('#adminDashboard').hidden);
     assert.equal(await page.locator('#adminPassword').inputValue(), '');
+    await page.waitForFunction(() => document.querySelector('#visits30').textContent === '300');
+    sessionRequested = false;
+    sessionGate = new Promise(resolve => { releaseSession = resolve; });
+    await page.addInitScript(() => {
+      window.loginFlashed = false;
+      new MutationObserver(() => {
+        const login = document.querySelector('#loginSection');
+        if (login && !login.hidden) window.loginFlashed = true;
+      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    for (let attempt = 0; !sessionRequested && attempt < 250; attempt++) await page.waitForTimeout(20);
+    assert.equal(sessionRequested, true, 'Session check requested after reload');
+    assert.equal(await page.locator('#loginSection').isVisible(), false);
+    assert.equal(await page.locator('#logoutButton').isVisible(), false);
+    assert.equal(await page.locator('#adminSessionLoading').isVisible(), true);
+    await page.screenshot({ path: '/tmp/car-loan-admin-session-loading.png' });
+    releaseSession();
+    await page.locator('#adminDashboard').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#adminSessionLoading').isVisible(), false);
+    assert.equal(await page.evaluate(() => window.loginFlashed), false, 'Returning admin must never see the login form');
     await page.waitForFunction(() => document.querySelector('#visits30').textContent === '300');
     await page.locator('#downloadsList').getByText(/Updated Agent.*\+60198765432.*Profil Ejen/).waitFor();
     assert.equal(await page.locator('#downloadsList p').count(),2);
@@ -98,7 +134,21 @@ const root = path.resolve(__dirname, '..');
     await page.screenshot({ path: '/tmp/car-loan-admin-publish.png' });
     await page.locator('#logoutButton').click();
     await page.waitForFunction(() => !document.querySelector('#loginSection').hidden);
+    configFailure = true;
+    await page.reload();
+    await page.locator('#adminSessionRetry').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#loginSection').isVisible(), false);
+    assert.equal(await page.locator('#adminDashboard').isVisible(), false);
+    assert.ok((await page.locator('#adminSessionMessage').innerText()).includes('Temporary connection error'));
+    configFailure = false;
+    await page.locator('#adminSessionRetry').click();
+    await page.locator('#loginSection').waitFor({ state: 'visible' });
+    configReady = false;
+    await page.reload();
+    await page.locator('#loginSection').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#loginForm button[type=submit]').isDisabled(), true);
+    assert.ok((await page.locator('#adminStatus').innerText()).includes('belum dikonfigurasi'));
     assert.deepEqual(errors, []);
-    console.log('PASS admin: password login, visibility, one-click multi-batch push, interrupted resume without republish, logout and responsive widths.');
+    console.log('PASS admin: no login flash during delayed session restore, connection retry, missing config, password login, visibility, one-click multi-batch push, interrupted resume without republish, logout and responsive widths.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

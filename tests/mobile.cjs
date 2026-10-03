@@ -78,6 +78,7 @@ async function mockInstalled(page, permission, existing = true, installed = true
     await desktop.waitForFunction(() => document.querySelector('#dialogTitle').textContent === 'Jadikan Car Loan MY sebagai app');
     await desktop.screenshot({ path: '/tmp/car-loan-desktop-install.png' });
     await desktop.goto(base + '/admin');
+    await desktop.locator('#loginSection').waitFor({ state: 'visible' });
     assert.ok(await desktop.locator('#loginSection').isVisible());
     assert.ok(await desktop.locator('#adminDashboard').isHidden());
     const ios = await pageFor(iosUA); await ios.goto(base);

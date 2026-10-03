@@ -40,7 +40,13 @@
     try { await work(); } catch (error) { status(error.message); if (error.status === 401) showLogin(); }
     finally { busy = false; document.querySelectorAll('button').forEach(button => { button.disabled = button.dataset.unavailable === 'true'; }); }
   }
-  function showLogin() { $('#loginSection').hidden = false; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true; }
+  function showLogin() { $('#adminSessionLoading').hidden = true; $('#loginSection').hidden = false; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true; }
+  function showChecking() {
+    $('#loginSection').hidden = true; $('#adminDashboard').hidden = true; $('#logoutButton').hidden = true;
+    $('#adminSessionLoading').hidden = false; $('#adminSessionRetry').hidden = true;
+    $('.admin-session-spinner').hidden = false;
+    $('#adminSessionMessage').textContent = 'Menyemak sesi...'; status('');
+  }
   async function loadStats() {
     $('#statsStatus').textContent = 'Memuatkan statistik...';
     try {
@@ -69,6 +75,7 @@
   }
   async function load() {
     const data = await api('admin');
+    $('#adminSessionLoading').hidden = true;
     $('#loginSection').hidden = true; $('#adminDashboard').hidden = false; $('#logoutButton').hidden = false;
     $('#adminIdentity').textContent = data.email;
     $('#publishButton').disabled = !data.pushReady; $('#publishButton').dataset.unavailable = String(!data.pushReady);
@@ -126,12 +133,21 @@
   $('#statsRefresh').onclick = () => task(loadStats);
   $('#logoutButton').onclick = () => task(async () => { await api('logout', {}); showLogin(); status('Anda telah logout.'); });
   icons();
-  task(async () => {
-    const params = new URLSearchParams(location.hash.slice(1));
-    if (location.hash) history.replaceState(null, '', location.pathname);
-    if (params.get('error_description')) throw new Error(params.get('error_description'));
-    const config = await api('config');
-    if (!config.ready) { status('Backend admin belum dikonfigurasi. Login dan hebahan belum tersedia.'); $('#loginForm button').disabled = true; $('#loginForm button').dataset.unavailable = 'true'; return; }
-    try { await load(); } catch (error) { if (error.status !== 401) throw error; showLogin(); }
-  });
+  async function initialise() {
+    showChecking();
+    try {
+      const params = new URLSearchParams(location.hash.slice(1));
+      if (location.hash) history.replaceState(null, '', location.pathname);
+      if (params.get('error_description')) throw new Error(params.get('error_description'));
+      const config = await api('config');
+      if (!config.ready) { showLogin(); status('Backend admin belum dikonfigurasi. Login dan hebahan belum tersedia.'); $('#loginForm button[type=submit]').disabled = true; $('#loginForm button[type=submit]').dataset.unavailable = 'true'; return; }
+      $('#loginForm button[type=submit]').dataset.unavailable = 'false';
+      try { await load(); } catch (error) { if (error.status !== 401) throw error; showLogin(); }
+    } catch (error) {
+      $('#adminSessionMessage').textContent = error.message;
+      $('.admin-session-spinner').hidden = true; $('#adminSessionRetry').hidden = false;
+    }
+  }
+  $('#adminSessionRetry').onclick = () => task(initialise);
+  task(initialise);
 })();

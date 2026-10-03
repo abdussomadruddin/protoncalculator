@@ -15,7 +15,12 @@
   <main class="admin-shell">
     <header class="topbar"><img class="app-logo" src="/icon-192.png?v=20260930" width="52" height="52" alt="Car Loan MY" /><div><p class="eyebrow">ADMIN</p><h1>Car Loan MY</h1></div><button id="logoutButton" class="icon-button" title="Logout" aria-label="Logout" hidden><i data-lucide="log-out"></i></button></header>
     <p id="adminStatus" class="admin-status" role="status" aria-live="polite"></p>
-    <section id="loginSection">
+    <section id="adminSessionLoading" class="admin-session-loading" aria-label="Pengesahan sesi admin">
+      <span class="admin-session-spinner" aria-hidden="true"></span>
+      <p id="adminSessionMessage" role="status" aria-live="polite">Menyemak sesi...</p>
+      <button id="adminSessionRetry" type="button" class="secondary-action" hidden><i data-lucide="refresh-cw"></i> Cuba semula</button>
+    </section>
+    <section id="loginSection" hidden>
       <h2><i data-lucide="shield-check"></i> Login admin</h2>
       <form id="loginForm">
         <label><span>Email admin</span><input id="adminEmail" type="email" autocomplete="username" required placeholder="Email admin" /></label>
