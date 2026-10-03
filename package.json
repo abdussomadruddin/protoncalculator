@@ -4,18 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/serve.cjs",
-    "test": "node tests/catalog.cjs && node tests/calculator.cjs && node tests/mobile.cjs && node tests/sw.cjs && node tests/admin.cjs && node --test tests/api.cjs && node tests/schema.cjs && node tests/activity.cjs && node tests/downloads.cjs"
+    "test": "node tests/catalog.cjs && node tests/calculator.cjs && node tests/mobile.cjs && node tests/sw.cjs && node tests/admin.cjs && node --test tests/api.cjs && node tests/schema.cjs && node tests/activity.cjs && node tests/downloads.cjs && node tests/comparison.cjs"
   },
   "dependencies": {
     "exceljs": "4.4.0",
     "lucide": "1.49.0",
+    "qrcode-generator": "1.4.4",
     "web-push": "3.6.7"
   },
   "overrides": {
-    "exceljs": { "uuid": "11.1.1" }
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
+    "jsqr": "1.4.0",
     "playwright": "1.63.0"
   }
 }

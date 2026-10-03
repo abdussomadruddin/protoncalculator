@@ -10,7 +10,8 @@
       $('downloadsList').replaceChildren();
       for(const record of data.records) {
         const item = document.createElement('p');
-        item.textContent = new Date(record.created_at).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'})+' | '+record.name+' | '+record.whatsapp+' | '+record.snapshot.brand+' '+record.snapshot.model+' '+record.snapshot.variant;
+        const cars = record.snapshot.cars || [record.snapshot];
+        item.textContent = new Date(record.created_at).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'})+' | '+record.name+' | '+record.whatsapp+' | '+cars.map(car=>car.brand+' '+car.model+' '+car.variant).join(' vs ');
         $('downloadsList').append(item);
       }
       $('downloadsPrevious').disabled = page === 1;

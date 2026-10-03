@@ -109,10 +109,8 @@ function calculateValues() {
   const includedCharges = 0;
   const insuranceBase = inputPrice;
   const priceAfterRebate = Math.max(inputPrice - rebate, 0);
-  const insurance = insuranceOption === "with" ? insuranceBase * INSURANCE_RATE * (1 - ncd / 100) : 0;
-  const otrTotal = priceAfterRebate + includedCharges + extras + insurance;
-  const depositAmount = getDepositAmount(otrTotal);
-  const loanAfterDeposit = Math.max(otrTotal - depositAmount, 0);
+  const finance = calculateCarSnapshot({inputPrice,rebate,extras,interestRate,insuranceOption,ncd,loanPeriod,depositOption:getCheckedValue('depositOption'),customDeposit:Math.max(readNumber(customDepositInput),0)});
+  const {insurance,otrTotal,depositAmount,loanAfterDeposit} = finance;
   const errors = [];
   if (!form.checkValidity() || inputPrice <= 0) errors.push("Sila lengkapkan harga dan nilai input yang sah.");
   if (rebate > inputPrice) errors.push("Rebate tidak boleh melebihi harga kereta.");
@@ -124,11 +122,21 @@ function calculateValues() {
     variantData: variant, hasBodyPrice, inputPrice, rebate, extras, interestRate,
     insuranceOption, insuranceBase, ncd, loanPeriod, includedCharges, priceAfterRebate,
     insurance, otrTotal, depositAmount, loanAfterDeposit, depositLabel: getDepositLabel(),
+    depositOption:getCheckedValue('depositOption'),customDeposit:Math.max(readNumber(customDepositInput),0),
     baseMonthly: calculateMonthly(loanAfterDeposit, interestRate, BASE_COMPARISON_YEARS),
     selectedMonthly: calculateMonthly(loanAfterDeposit, interestRate, loanPeriod),
     batteryMonthly: variant.batteryMonthly || 0, errors,
     priceOverride: inputPrice !== variant.bodyPrice,
   };
+}
+function calculateCarSnapshot(input) {
+  const insurance = input.insuranceOption === 'with' ? input.inputPrice * INSURANCE_RATE * (1 - input.ncd / 100) : 0;
+  const otrTotal = Math.max(input.inputPrice - input.rebate, 0) + input.extras + insurance;
+  const depositAmount = input.depositOption === 'ten' ? otrTotal * .1 : input.depositOption === 'custom' ? Math.min(input.customDeposit, otrTotal) : 0;
+  const loanAfterDeposit = Math.max(otrTotal - depositAmount, 0);
+  return { ...input, insurance, otrTotal, depositAmount, loanAfterDeposit,
+    baseMonthly: calculateMonthly(loanAfterDeposit, input.interestRate, 7),
+    selectedMonthly: calculateMonthly(loanAfterDeposit, input.interestRate, input.loanPeriod) };
 }
 function buildTemplate(values) {
   const { variantData: variant } = values;

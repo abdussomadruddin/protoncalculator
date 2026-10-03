@@ -7,7 +7,7 @@ Object.assign(process.env, { SUPABASE_URL: 'https://test.supabase.co', SUPABASE_
 after(() => { global.fetch = originalFetch; process.env = originalEnv; });
 async function request(action, { method = 'GET', body, cookie, id, origin = 'https://protoncalculator.vercel.app' } = {}) {
   const req = { query: { action, id }, method, body, headers: { origin, 'content-type': 'application/json', cookie } };
-  const res = { headers: {}, code: null, data: null, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } };
+  const res = { headers: {}, code: null, data: null, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; }, end(data) { this.data = data; } };
   await handler(req, res); return res;
 }
 test('public config cannot expose private credentials', async () => {
@@ -83,6 +83,25 @@ test('activity validates input, hashes identifiers and never returns aggregate d
     return new Response('true');
   };
   assert.deepEqual((await request('activity', { method: 'POST', body })).data, { recorded: true });
+});
+test('comparison snapshots validate both cars and preserve legacy downloads', async () => {
+  const car = {brand:'Proton',model:'S70',variant:'Lite',loanPeriod:9,inputPrice:60000,rebate:0,extras:0,insurance:0,insuranceOption:'exclude',depositAmount:0,loanAfterDeposit:60000,interestRate:2.5,ncd:0,baseMonthly:60000*1.175/84,selectedMonthly:60000*1.225/108,batteryMonthly:0};
+  const body = {id:'11111111-1111-4111-8111-111111111111',name:'Test',phone:'0123456789',snapshot:{version:2,cars:[car,{...car,brand:'Perodua',batteryMonthly:275}]}};
+  global.fetch = async (url,options) => {const data=JSON.parse(options.body);assert.equal(data.calculation.cars.length,2);assert.equal(data.calculation.cars[1].batteryMonthly,275);return new Response('true');};
+  assert.equal((await request('download-request',{method:'POST',body})).code,200);
+  for(const cars of [[],[car,car,car],[car,{...car,loanAfterDeposit:1}],[car,{...car,insuranceOption:'with'}]]) {
+    assert.equal((await request('download-request',{method:'POST',body:{...body,snapshot:{version:2,cars}}})).code,400);
+  }
+});
+test('admin Excel exports two cars as text-safe contact rows', async () => {
+  const car = {brand:'Proton',model:'S70',variant:'Lite',loanPeriod:9,inputPrice:60000,selectedMonthly:700};
+  global.fetch = async url => {
+    if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-01-01'}));
+    return new Response(JSON.stringify([{id:'test',created_at:'2026-10-04T00:00:00Z',name:'=HYPERLINK("bad")',whatsapp:'+60123456789',snapshot:{version:2,cars:[car,{...car,brand:'Perodua'}]}}]));
+  };
+  const res=await request('downloads-excel',{cookie:'__Host-carloan-admin=valid.jwt.token'});
+  const ExcelJS=require('exceljs'),book=new ExcelJS.Workbook();await book.xlsx.load(res.data);
+  const sheet=book.worksheets[0];assert.equal(sheet.getCell('C2').type,ExcelJS.ValueType.String);assert.equal(sheet.getCell('D2').value,'+60123456789');assert.equal(sheet.getCell('E2').value,'Proton');assert.equal(sheet.getCell('T2').value,'Perodua');
 });
 test('only authenticated admin can retrieve aggregated statistics', async () => {
   global.fetch = async url => {

@@ -145,13 +145,30 @@ module.exports = async function handler(req, res) {
       const rawPhone = typeof body.phone === 'string' ? body.phone.replace(/[\s()-]/g, '').replace(/^\+/, '').replace(/^0/, '60') : '';
       const phone = '+' + rawPhone;
       if (!name || name.length > 100 || /[\x00-\x1f]/.test(name) || !/^\+601(?:1\d{8}|[02-9]\d{7})$/.test(phone)) fail(400, 'Nama atau WhatsApp tidak sah.');
-      const s = body.snapshot;
+      const incoming = body.snapshot;
+      if (incoming?.cars && (incoming.version !== 2 || !Array.isArray(incoming.cars) || incoming.cars.length < 1 || incoming.cars.length > 2)) fail(400, 'Snapshot perbandingan tidak sah.');
+      const cars = incoming?.cars || [incoming];
+      const cleaned = cars.map(s => {
       if (!s || !['brand', 'model', 'variant'].every(k => typeof s[k] === 'string' && s[k].length > 0 && s[k].length <= 200) || !Number.isInteger(s.loanPeriod) || s.loanPeriod < 1 || s.loanPeriod > 9 || !['inputPrice','rebate','extras','insurance','depositAmount','loanAfterDeposit','interestRate','ncd','baseMonthly','selectedMonthly','batteryMonthly'].every(k => Number.isFinite(s[k]) && s[k] >= 0 && s[k] <= 10000000)) fail(400, 'Snapshot kiraan tidak sah.');
       const snapshot = Object.fromEntries(['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','depositAmount','loanAfterDeposit','interestRate','ncd','baseMonthly','selectedMonthly','batteryMonthly'].map(k => [k,s[k]]));
       if (s.ncd > 100 || s.interestRate > 100 || s.inputPrice <= 0 || s.rebate > s.inputPrice || s.depositAmount > s.inputPrice - s.rebate + s.extras + s.insurance) fail(400, 'Kiraan tidak sah.');
       const principal = s.inputPrice - s.rebate + s.extras + s.insurance - s.depositAmount;
       const monthly = years => principal * (1 + s.interestRate / 100 * years) / (years * 12);
       if (Math.abs(principal - s.loanAfterDeposit) > 0.01 || Math.abs(monthly(7) - s.baseMonthly) > 0.01 || Math.abs(monthly(s.loanPeriod) - s.selectedMonthly) > 0.01) fail(400, 'Kiraan snapshot tidak sepadan.');
+      if (s.insuranceOption !== undefined) {
+        if (!['with','exclude','without'].includes(s.insuranceOption)) fail(400, 'Pilihan insurans tidak sah.');
+        const expected = s.insuranceOption === 'with' ? s.inputPrice * .033 * (1-s.ncd/100) : 0;
+        if (Math.abs(expected-s.insurance) > .01) fail(400, 'Insurans tidak sepadan.');
+        snapshot.insuranceOption = s.insuranceOption;
+      }
+      if(s.depositOption !== undefined) {
+        if(!['full','ten','custom'].includes(s.depositOption)) fail(400,'Downpayment tidak sah.');
+        if((s.depositOption === 'full' && s.depositAmount !== 0) || (s.depositOption === 'ten' && Math.abs(s.depositAmount-(principal+s.depositAmount)*.1)>.01)) fail(400,'Downpayment tidak sepadan.');
+        snapshot.depositOption = s.depositOption;
+      }
+      return snapshot;
+      });
+      const snapshot = incoming?.cars ? {version:2,cars:cleaned} : cleaned[0];
       const { data } = await supabase('/rest/v1/rpc/car_save_download', { method: 'POST', body: { request_id: id, person_name: name, whatsapp: phone, calculation: snapshot, client_hash: hash(String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')) } });
       if (!data) fail(429, 'Terlalu banyak permintaan. Cuba sebentar lagi.');
       return res.status(200).json({ saved: true });
@@ -219,13 +236,14 @@ module.exports = async function handler(req, res) {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Rekod Download');
       const keys = ['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','ncd','depositAmount','loanAfterDeposit','interestRate','baseMonthly','selectedMonthly','batteryMonthly'];
-      sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys]);
+      sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys.map(k=>'A '+k),...keys.map(k=>'B '+k)]);
       const cutoff = new Date().toISOString();
       for (let offset = 0; ; offset += 500) {
         const { data } = await supabase('/rest/v1/car_download_contacts?select=id,created_at,name,whatsapp,snapshot&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
         for (const row of data) {
           // Explicit string values are written as XLSX text, never formulas.
-          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => row.snapshot[k] ?? '')]);
+          const cars = row.snapshot.cars || [row.snapshot];
+          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => cars[0][k] ?? ''),...keys.map(k=>cars[1]?.[k] ?? '')]);
           added.getCell(4).numFmt = '@';
         }
         if (data.length < 500) break;

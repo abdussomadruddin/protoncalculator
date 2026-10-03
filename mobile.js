@@ -203,6 +203,7 @@
     show({ heading: 'Tetapan app', text: 'Car Loan MY', button: null });
     const menu = document.createElement('div'); menu.className = 'dialog-menu';
     const options = [
+      ['contact', 'Profil Ejen', () => { dialog.close(); window.agentProfile.open(); }],
       ['download', 'Add to Home Screen', installGuide],
       ['bell-ring', 'Notification', notificationGate],
       ['megaphone', 'Hebahan terkini', () => checkAnnouncement(true)],
