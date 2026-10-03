@@ -53,6 +53,7 @@ test('unauthenticated visitors cannot publish, deactivate, send, or read admin d
   assert.equal((await request('admin')).code, 401);
   assert.equal((await request('stats')).code, 401);
   assert.equal((await request('downloads')).code, 401);
+  assert.equal((await request('agent-stats')).code, 401);
   assert.equal((await request('downloads-excel')).code, 401);
 });
 test('download requests validate contact, origin and calculation before storage', async () => {
@@ -132,6 +133,32 @@ test('only authenticated admin can retrieve aggregated statistics', async () => 
   };
   const response = await request('stats', { cookie: '__Host-carloan-admin=valid.jwt.token' });
   assert.equal(response.code, 200); assert.equal(response.data.notifications, 5);
+});
+test('agent totals count unique WhatsApps at first record across pages and Malaysia days', async () => {
+  const today = new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+  const recent = today+'T00:00:00+08:00';
+  const old = new Date(Date.now()-60*86400000).toISOString();
+  const rows = Array.from({length:500},()=>({created_at:old,whatsapp:'+60111111111'}));
+  rows.push({created_at:recent,whatsapp:'+60111111111'},{created_at:recent,whatsapp:'+60122222222'});
+  let pages=0;
+  global.fetch = async url => {
+    if(url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-09-30'}));
+    const parsed=new URL(url);
+    assert.ok(parsed.pathname.endsWith('/car_download_requests'));
+    assert.equal(parsed.searchParams.get('select'),'created_at,whatsapp');
+    assert.ok(parsed.searchParams.get('created_at').startsWith('lte.'));
+    const offset=Number(parsed.searchParams.get('offset')); pages++;
+    return new Response(JSON.stringify(rows.slice(offset,offset+500)));
+  };
+  const res=await request('agent-stats',{cookie:'__Host-carloan-admin=valid.jwt.token'});
+  assert.equal(res.code,200); assert.equal(pages,2); assert.equal(res.data.total,2);
+  assert.equal(res.data.daily.length,30); assert.equal(res.data.daily.at(-1).date,today);
+  assert.equal(res.data.daily.at(-1).count,1);
+  assert.equal(res.data.daily.reduce((n,d)=>n+d.count,0),1);
+  assert.ok(!JSON.stringify(res.data).includes('+601'));
+  global.fetch=async url=>url.endsWith('/auth/v1/user')?new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-09-30'})):new Response('[]');
+  const empty=await request('agent-stats',{cookie:'__Host-carloan-admin=valid.jwt.token'});
+  assert.equal(empty.data.total,0); assert.ok(empty.data.daily.every(d=>d.count===0));
 });
 test('cross-origin writes and wrong admin email denied before upstream work', async () => {
   assert.equal((await request('publish', { method: 'POST', origin: 'https://evil.example', body: {} })).code, 403);

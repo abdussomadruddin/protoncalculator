@@ -27,6 +27,7 @@ const root = path.resolve(__dirname, '..');
       const respond = (data, status = 200) => route.fulfill({ status, json: data });
       if (action === 'config') return configFailure ? respond({ error: 'Temporary connection error' }, 503) : respond({ ready: configReady, pushReady: true });
       if (action === 'stats') return loggedIn ? respond({ startedAt: '2026-10-02T00:00:00Z', traffic: [1, 7, 30].map(days => ({ days, visits: days * 10, devices: days * 2 })), notifications: 42, phoneApps: 30, phoneAppsWithNotifications: 20 }) : respond({ error: 'Login required' }, 401);
+      if (action === 'agent-stats') return loggedIn ? respond({ total: 6, daily: Array.from({length:30},(_,i)=>({date:new Date(Date.UTC(2026,8,5+i)).toISOString().slice(0,10),count:i===0?2:i===29?3:0})) }) : respond({error:'Login required'},401);
       if (action === 'downloads') return loggedIn ? respond({records:[{id:'old',created_at:'2026-10-04T00:00:00Z',name:'Old Agent',whatsapp:'+60123456789',snapshot:{brand:'Proton',model:'S70',variant:'Lite'}},{id:'new',created_at:'2026-10-04T01:00:00Z',name:'Updated Agent',whatsapp:'+60198765432',snapshot:{kind:'agent-profile'}}],hasNext:false}) : respond({error:'Login required'},401);
       if (action === 'login') {
         assert.equal(body.email, 'admin@example.test');
@@ -95,10 +96,15 @@ const root = path.resolve(__dirname, '..');
     assert.equal(await page.locator('#adminSessionLoading').isVisible(), false);
     assert.equal(await page.evaluate(() => window.loginFlashed), false, 'Returning admin must never see the login form');
     await page.waitForFunction(() => document.querySelector('#visits30').textContent === '300');
-    await page.locator('#downloadsList').getByText(/Updated Agent.*\+60198765432.*Profil Ejen/).waitFor();
-    assert.equal(await page.locator('#downloadsList p').count(),2);
-    assert.ok((await page.locator('#downloadsList').textContent()).includes('+60123456789'));
-    assert.ok(!(await page.locator('#downloadsList').textContent()).includes('undefined'));
+    await page.waitForFunction(() => document.querySelector('#agentTotal').textContent === '6');
+    assert.equal(await page.locator('#downloadsList').count(), 0);
+    assert.equal(await page.locator('.agent-bar').count(), 7);
+    assert.ok((await page.locator('#downloadsStatus').innerText()).includes('3 ejen baharu'));
+    await page.locator('#agents30').click();
+    assert.equal(await page.locator('.agent-bar').count(), 30);
+    assert.ok((await page.locator('#downloadsStatus').innerText()).includes('5 ejen baharu'));
+    assert.equal(await page.getByRole('link',{name:'Download Database Ejen'}).getAttribute('href'),'/api/app?action=downloads-excel');
+    await page.locator('#agents7').click();
     assert.equal(await page.locator('#notificationCount').textContent(), '42');
     assert.equal(await page.locator('#phonePushCount').textContent(), '20');
     await page.locator('#adminDashboard').evaluate(async element => {

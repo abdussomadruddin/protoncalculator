@@ -1,6 +1,15 @@
 .admin-shell{max-width:1050px;margin:auto;padding:28px 24px calc(40px + env(safe-area-inset-bottom))}
 .admin-status{font-size:14px;line-height:1.6;color:#a23647;overflow-wrap:anywhere;white-space:pre-wrap}
 .admin-status:empty{display:none}
+.agent-total{display:flex;align-items:center;justify-content:space-between;padding:18px 0;margin-bottom:16px;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
+.agent-total strong{font-size:36px;color:var(--ink);font-variant-numeric:tabular-nums}
+.agent-periods{display:flex;gap:4px;background:#ffffff80;border-radius:12px;padding:3px}
+.admin-shell .agent-periods button{min-width:66px;border:0;background:transparent;box-shadow:none}
+.admin-shell .agent-periods button[aria-pressed=true]{background:#087e68;color:white}
+.agent-chart{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;height:150px;align-items:end;border-bottom:1px solid var(--line);margin-top:12px}
+.agent-bar{background:#16a085;border-radius:4px 4px 0 0;min-height:2px;transition:height .2s ease}
+.agent-chart-dates{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px}
+@media(prefers-reduced-motion:reduce){.agent-bar{transition:none}}
 .admin-session-loading{text-align:center;padding:48px 16px;color:var(--muted)}
 .admin-session-spinner{display:inline-block;width:28px;height:28px;border:3px solid #c7d8e3;border-top-color:#087e68;border-radius:50%;animation:admin-session-spin .8s linear infinite}
 @keyframes admin-session-spin{to{transform:rotate(360deg)}}

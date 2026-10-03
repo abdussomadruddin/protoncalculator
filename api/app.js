@@ -230,6 +230,26 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req, res);
+    if (action === 'agent-stats' && req.method === 'GET') {
+      const now = new Date(), cutoff = now.toISOString(), firstRecorded = new Map();
+      // A WhatsApp is counted on its first record, not on every poster download.
+      for (let offset = 0; ; offset += 500) {
+        const { data } = await supabase('/rest/v1/car_download_requests?select=created_at,whatsapp&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
+        for (const row of data) {
+          const time = new Date(row.created_at).getTime();
+          if (!Number.isFinite(time)) continue;
+          const previous = firstRecorded.get(row.whatsapp);
+          if (previous === undefined || time < previous) firstRecorded.set(row.whatsapp, time);
+        }
+        if (data.length < 500) break;
+      }
+      const malaysiaDay = time => new Date(time + 8 * 3600000).toISOString().slice(0, 10);
+      const today = malaysiaDay(now.getTime());
+      const daily = Array.from({ length: 30 }, (_, i) => ({ date: new Date(Date.parse(today + 'T00:00:00Z') - (29 - i) * 86400000).toISOString().slice(0, 10), count: 0 }));
+      const counts = new Map(daily.map(day => [day.date, day]));
+      for (const time of firstRecorded.values()) { const day = counts.get(malaysiaDay(time)); if (day) day.count++; }
+      return res.status(200).json({ total: firstRecorded.size, daily, checkedAt: cutoff });
+    }
     if (action === 'downloads' && req.method === 'GET') {
       const page = Number(req.query.page || 1);
       if (!Number.isSafeInteger(page) || page < 1 || page > 100000) fail(400, 'Halaman tidak sah.');
