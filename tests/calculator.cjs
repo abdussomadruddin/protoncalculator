@@ -33,7 +33,7 @@ function expectedRebate(brand, model, variant) {
   await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
   await page.locator("#dialogAction").click();
   const values = () => page.evaluate(() => calculateValues());
-  const reset = () => page.locator('#resetButton').click();
+  const reset = () => page.evaluate(() => resetDefaults());
   const select = async (brand, model, variant) => {
     await page.selectOption('#brandSelect', brand);
     await page.selectOption('#modelSelect', model);
@@ -110,9 +110,13 @@ function expectedRebate(brand, model, variant) {
     }
     await page.locator('input[name="depositOption"][value="ten"]').check();
     v = await values(); near(v.depositAmount, v.otrTotal * .1);
+    assert.match(await page.inputValue('#templateOutput'), /10% downpayment/);
+    assert.match(await page.inputValue('#templateOutput'), /Downpayment amount:/);
+    assert.ok(!(await page.inputValue('#templateOutput')).toLowerCase().includes('deposit'));
     await page.locator('input[name="depositOption"][value="custom"]').check();
     await page.fill('#customDeposit', '1234.56');
     v = await values(); near(v.depositAmount, 1234.56); assert.deepEqual(v.errors, []);
+    assert.match(await page.inputValue('#templateOutput'), /Custom downpayment/);
     await page.fill('#customDeposit', '999999');
     v = await values(); near(v.loanAfterDeposit, 0);
     await reset();

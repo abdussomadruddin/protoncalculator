@@ -119,6 +119,24 @@ module.exports = async function handler(req, res) {
       if (JSON.stringify(req.body || {}).length > 12000) fail(413, 'Mesej terlalu besar.');
     }
     const body = req.body || {};
+    if (action === 'download-request') {
+      requirePost(req);
+      const id = uuid(body.id);
+      const name = typeof body.name === 'string' ? body.name.trim() : '';
+      const rawPhone = typeof body.phone === 'string' ? body.phone.replace(/[\s()-]/g, '').replace(/^\+/, '').replace(/^0/, '60') : '';
+      const phone = '+' + rawPhone;
+      if (!name || name.length > 100 || /[\x00-\x1f]/.test(name) || !/^\+601(?:1\d{8}|[02-9]\d{7})$/.test(phone)) fail(400, 'Nama atau WhatsApp tidak sah.');
+      const s = body.snapshot;
+      if (!s || !['brand', 'model', 'variant'].every(k => typeof s[k] === 'string' && s[k].length > 0 && s[k].length <= 200) || !Number.isInteger(s.loanPeriod) || s.loanPeriod < 1 || s.loanPeriod > 9 || !['inputPrice','rebate','extras','insurance','depositAmount','loanAfterDeposit','interestRate','ncd','baseMonthly','selectedMonthly','batteryMonthly'].every(k => Number.isFinite(s[k]) && s[k] >= 0 && s[k] <= 10000000)) fail(400, 'Snapshot kiraan tidak sah.');
+      const snapshot = Object.fromEntries(['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','depositAmount','loanAfterDeposit','interestRate','ncd','baseMonthly','selectedMonthly','batteryMonthly'].map(k => [k,s[k]]));
+      if (s.ncd > 100 || s.interestRate > 100 || s.inputPrice <= 0 || s.rebate > s.inputPrice || s.depositAmount > s.inputPrice - s.rebate + s.extras + s.insurance) fail(400, 'Kiraan tidak sah.');
+      const principal = s.inputPrice - s.rebate + s.extras + s.insurance - s.depositAmount;
+      const monthly = years => principal * (1 + s.interestRate / 100 * years) / (years * 12);
+      if (Math.abs(principal - s.loanAfterDeposit) > 0.01 || Math.abs(monthly(7) - s.baseMonthly) > 0.01 || Math.abs(monthly(s.loanPeriod) - s.selectedMonthly) > 0.01) fail(400, 'Kiraan snapshot tidak sepadan.');
+      const { data } = await supabase('/rest/v1/rpc/car_save_download', { method: 'POST', body: { request_id: id, person_name: name, whatsapp: phone, calculation: snapshot, client_hash: hash(String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')) } });
+      if (!data) fail(429, 'Terlalu banyak permintaan. Cuba sebentar lagi.');
+      return res.status(200).json({ saved: true });
+    }
     if (action === 'announcement' && req.method === 'GET') {
       const idFilter = req.query.id ? '&id=eq.' + uuid(req.query.id) : '';
       const { data } = await supabase('/rest/v1/car_announcements?active=eq.true' + idFilter + '&select=id,title,message,link_url,link_label&order=created_at.desc&limit=1');
@@ -165,6 +183,35 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req);
+    if (action === 'downloads' && req.method === 'GET') {
+      const page = Number(req.query.page || 1);
+      if (!Number.isSafeInteger(page) || page < 1 || page > 100000) fail(400, 'Halaman tidak sah.');
+      const { data } = await supabase('/rest/v1/car_download_requests?select=id,created_at,name,whatsapp,snapshot&order=created_at.desc,id.desc&limit=21&offset=' + ((page - 1) * 20));
+      return res.status(200).json({ records: data.slice(0,20), page, hasNext: data.length > 20 });
+    }
+    if (action === 'downloads-excel' && req.method === 'GET') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Rekod Download');
+      const keys = ['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','ncd','depositAmount','loanAfterDeposit','interestRate','baseMonthly','selectedMonthly','batteryMonthly'];
+      sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys]);
+      const cutoff = new Date().toISOString();
+      for (let offset = 0; ; offset += 500) {
+        const { data } = await supabase('/rest/v1/car_download_requests?select=id,created_at,name,whatsapp,snapshot&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
+        for (const row of data) {
+          // Explicit string values are written as XLSX text, never formulas.
+          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => row.snapshot[k] ?? '')]);
+          added.getCell(4).numFmt = '@';
+        }
+        if (data.length < 500) break;
+      }
+      sheet.getRow(1).font = { bold: true };
+      sheet.columns.forEach(column => { column.width = 24; });
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition','attachment; filename="car-loan-my-downloads.xlsx"');
+      res.status(200); return res.end(buffer);
+    }
     if (action === 'stats' && req.method === 'GET') {
       const { data } = await supabase('/rest/v1/rpc/car_admin_stats', { method: 'POST', body: {} });
       return res.status(200).json(data);

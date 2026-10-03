@@ -91,7 +91,7 @@ function getDepositAmount(otrTotal) {
   return 0;
 }
 function getDepositLabel() {
-  return { ten: "10% deposit", custom: "Custom deposit", full: "Full loan" }[getCheckedValue("depositOption")];
+  return { ten: "10% downpayment", custom: "Custom downpayment", full: "Full loan" }[getCheckedValue("depositOption")];
 }
 function calculateValues() {
   if (!rebateManual && rebateDate !== localDate()) applyRebate();
@@ -145,7 +145,7 @@ function buildTemplate(values) {
       "Estimated insurance (" + percent(values.ncd) + " NCD): " + money(values.insurance));
   } else lines.push("", "Insurance: Excluded");
   lines.push("OTR " + (values.insuranceOption === "with" ? "with" : "without") + " insurance: *" + money(values.otrTotal) + "*", "",
-    "Deposit amount: " + money(values.depositAmount), "Loan after deposit: " + money(values.loanAfterDeposit), "",
+    "Downpayment amount: " + money(values.depositAmount), "Loan after downpayment: " + money(values.loanAfterDeposit), "",
     "Interest rate: " + percent(values.interestRate) + " p.a. (flat estimate)", ...paymentLines);
   if (values.batteryMonthly) lines.push("", "Battery lease: " + money(values.batteryMonthly) + "/month for " + variant.batteryMonths + " months (separate from loan)",
     "Loan + battery lease (" + values.loanPeriod + " years loan): *" + money(values.selectedMonthly + values.batteryMonthly) + "/month*",
@@ -249,7 +249,6 @@ form.addEventListener("input", (event) => {
 });
 form.addEventListener("change", render);
 $("#copyButton").addEventListener("click", copyTemplate);
-$("#resetButton").addEventListener("click", resetDefaults);
 fillOptions(brandSelect, Object.keys(CAR_CATALOG));
 resetDefaults();
 setInterval(() => { if (!document.hidden && rebateDate !== localDate()) render(); }, 60000);

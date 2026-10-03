@@ -35,6 +35,25 @@ test('unauthenticated visitors cannot publish, deactivate, send, or read admin d
   }
   assert.equal((await request('admin')).code, 401);
   assert.equal((await request('stats')).code, 401);
+  assert.equal((await request('downloads')).code, 401);
+  assert.equal((await request('downloads-excel')).code, 401);
+});
+test('download requests validate contact, origin and calculation before storage', async () => {
+  const principal = 60000;
+  const body = {id:'11111111-1111-4111-8111-111111111111',name:'Test',phone:'0123456789',snapshot:{brand:'Proton',model:'S70',variant:'Lite',loanPeriod:9,inputPrice:60000,rebate:0,extras:0,insurance:0,depositAmount:0,loanAfterDeposit:principal,interestRate:2.5,ncd:0,baseMonthly:principal*1.175/84,selectedMonthly:principal*1.225/108,batteryMonthly:0}};
+  global.fetch = async (url, options) => {
+    assert.ok(url.endsWith('/rpc/car_save_download'));
+    const payload=JSON.parse(options.body);
+    assert.equal(payload.whatsapp,'+60123456789');
+    assert.equal(payload.request_id,body.id);
+    return new Response('true');
+  };
+  assert.equal((await request('download-request',{method:'POST',body})).code,200);
+  assert.equal((await request('download-request',{method:'POST',body,origin:'https://evil.test'})).code,403);
+  assert.equal((await request('download-request',{method:'POST',body:{...body,phone:'123'}})).code,400);
+  assert.equal((await request('download-request',{method:'POST',body:{...body,snapshot:{...body.snapshot,selectedMonthly:1}}})).code,400);
+  global.fetch=async()=>new Response('false');
+  assert.equal((await request('download-request',{method:'POST',body})).code,429);
 });
 test('activity validates input, hashes identifiers and never returns aggregate data publicly', async () => {
   const body = { deviceToken: 'a'.repeat(64), sessionToken: 'b'.repeat(64), phoneApp: true, permission: 'granted' };

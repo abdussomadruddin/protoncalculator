@@ -121,16 +121,16 @@
           </fieldset>
 
           <fieldset>
-            <legend><span class="section-icon gold"><i data-lucide="wallet"></i></span> Deposit & loan</legend>
+            <legend><span class="section-icon gold"><i data-lucide="wallet"></i></span> Downpayment & loan</legend>
 
-            <div class="segmented three" role="radiogroup" aria-label="Deposit option">
+            <div class="segmented three" role="radiogroup" aria-label="Downpayment option">
               <label>
                 <input type="radio" name="depositOption" value="full" checked />
                 <span>Full loan</span>
               </label>
               <label>
                 <input type="radio" name="depositOption" value="ten" />
-                <span>10% deposit</span>
+                <span>10% downpayment</span>
               </label>
               <label>
                 <input type="radio" name="depositOption" value="custom" />
@@ -140,7 +140,7 @@
 
             <div class="form-grid">
               <label id="customDepositWrap">
-                <span>Custom Deposit</span>
+                <span>Custom Downpayment</span>
                 <div class="money-field">
                   <span>RM</span>
                   <input id="customDeposit" name="customDeposit" type="number" min="0" step="0.01" value="0" inputmode="decimal" />
@@ -177,7 +177,7 @@
               <strong id="summaryLoan">RM 0.00</strong>
             </div>
             <div>
-              <span>Deposit</span>
+              <span>Downpayment</span>
               <strong id="summaryDeposit">RM 0.00</strong>
             </div>
             <div>
@@ -212,7 +212,7 @@
               <i data-lucide="copy"></i>
               <strong>Copy WhatsApp</strong>
             </button>
-            <button class="secondary-action icon-button" id="resetButton" type="button" title="Reset" aria-label="Reset"><i data-lucide="rotate-ccw"></i></button>
+            <button class="secondary-action icon-button" id="downloadImageButton" type="button" title="Download Gambar" aria-label="Download Gambar"><i data-lucide="download"></i></button>
           </div>
         </aside>
       </section>
@@ -234,6 +234,7 @@
     <script src="catalog.js"></script>
     <script src="rebates.js"></script>
     <script src="script.js"></script>
+    <script src="assets/vendor/loan-poster.js"></script>
     <script src="mobile.js"></script>
     <script src="activity.js"></script>
   </body>

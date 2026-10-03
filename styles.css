@@ -68,7 +68,10 @@ summary>span{font-size:22px;font-weight:400;color:var(--green)}
 .template-wrap>span{display:none}
 textarea{min-height:390px;padding:14px;line-height:1.65;white-space:pre-wrap;resize:vertical;font-size:13px}
 .estimate-note{font-size:11px;line-height:1.6;color:var(--muted);margin:16px 0}
-.actions{display:grid;grid-template-columns:1fr auto;gap:10px;position:relative;padding-top:8px}
+.actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;position:relative;padding-top:8px}
+#downloadImageButton{background:#f0163a;color:#fff;border-color:#d9092c;box-shadow:0 0 16px #f0163a70,0 4px 12px #d9092c35}
+#downloadImageButton:hover{background:#d9092c;box-shadow:0 0 22px #f0163a99,0 4px 12px #d9092c50}
+#downloadImageButton:focus-visible{outline:3px solid #ff9bad;outline-offset:4px}
 .primary-action,.secondary-action{min-height:50px;border-radius:7px;padding:12px 18px;font-size:14px;border:1px solid var(--line)}
 .primary-action{background:var(--green);color:#fff;border-color:var(--green)}
 .primary-action:hover{background:#10613b}
@@ -160,6 +163,10 @@ button{transition:background .18s,transform .18s}
 .app-dialog::backdrop{background:#172a2f80;backdrop-filter:blur(5px)}
 .dialog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
 .dialog-top img{border-radius:8px}
+.poster-dialog canvas{width:100%;height:auto;display:block;margin-bottom:24px}
+.poster-dialog form{display:grid;gap:12px}
+.poster-dialog label{display:grid;gap:6px}
+.poster-dialog form .primary-action{width:100%}
 .dialog-kicker{font-size:11px;font-weight:800;color:var(--accent);margin:0 0 8px}
 .app-dialog h2{font-size:25px;line-height:1.2;margin-bottom:12px;overflow-wrap:anywhere}
 .app-dialog p{font-size:14px;line-height:1.65}

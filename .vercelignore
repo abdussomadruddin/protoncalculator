@@ -31,3 +31,5 @@
 !assets/vendor
 !assets/vendor/lucide.js
 !assets/vendor/lucide-LICENSE
+!assets/vendor/loan-poster.js
+!assets/vendor/download-admin.js
