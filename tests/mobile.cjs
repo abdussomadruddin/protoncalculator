@@ -4,6 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
+assert.ok(fs.readFileSync(path.join(root,'.vercelignore'),'utf8').split(/\r?\n/).includes('!assets/icons/whatsapp.svg'),'WhatsApp icon included in production deployment');
 const iosUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 Version/18.4 Mobile/15E148 Safari/604.1';
 const androidUA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36';
 const vapid = require('web-push').generateVAPIDKeys();
