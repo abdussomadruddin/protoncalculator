@@ -45,6 +45,7 @@ const OFFICIAL_REBATES = {
   },
 };
 const REBATE_AUDIT_SOURCES = {
+  OMODA: { checkedAt: "2026-10-03", source: "https://www.omodajaecoo.com.my/", note: "Amaun cash rebate Oktober tepat setiap varian belum disahkan. Tawaran affiliate, overtrade dan sehingga tidak dianggap rebate umum; default dibiarkan kosong." },
   Mitsubishi: { checkedAt: "2026-10-02", source: "https://www.mitsubishi-motors.com.my/brochures/", note: "Rebate Oktober tepat mengikut varian belum disahkan. Pakej ansuran, trade-in dan tawaran bersyarat tidak dianggap cash rebate umum." },
   Mazda: { checkedAt: "2026-10-02", source: "https://www.mazda.com.my/vehicles", note: "Rebate Oktober tepat mengikut varian/tahun belum disahkan; tidak disimpulkan daripada beza harga MY25/MY26." },
   GWM: { checkedAt: "2026-10-02", source: "https://www.gwm.com.my/en/models", note: "RM3,000 dalam risalah ialah GWM Owners Loyalty Offer, bukan rebate semua pembeli. Tawaran bersyarat tidak dimasukkan sebagai default." },

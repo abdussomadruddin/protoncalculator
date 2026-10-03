@@ -32,7 +32,21 @@ const expected = {
     M6: [110600, 124660], '2026 SEALION 7': [164700, 189835, 205465],
   },
 };
-assert.equal(Object.keys(catalog).length, 11);
+assert.equal(Object.keys(catalog).length, 12);
+assert.deepEqual(Array.from(catalog.OMODA, m => m.name), ['C9', 'C9 PHEV']);
+assert.deepEqual(Array.from(catalog.OMODA[0].variants, v => v.bodyPrice), [168800, 188800]);
+assert.equal(catalog.OMODA[1].variants[0].bodyPrice, 208800);
+assert.equal(catalog.OMODA[1].powertrain, 'PHEV');
+for (const model of catalog.OMODA) {
+  assert.equal(model.checkedAt, '2026-10-03');
+  for (const variant of model.variants) {
+    assert.equal(variant.bodyPrice, variant.otrPrice);
+    assert.equal(vm.runInContext(`findOfficialRebate('OMODA', ${JSON.stringify(model.name)}, ${JSON.stringify(variant.name)}, '2026', '2026-10-03')`, context), null);
+  }
+}
+assert.ok(!catalog.Jaecoo.some(m => /C9/.test(m.name)));
+assert.ok(catalog.Chery.some(m => m.name === 'Chery O5'));
+assert.ok(catalog.Chery.some(m => m.name === 'Omoda E5'));
 assert.equal(catalog.Tesla, undefined);
 assert.equal(vm.runInContext('REBATE_AUDIT_SOURCES.Tesla', context), undefined);
 for (const [brand, models] of Object.entries(expected)) {

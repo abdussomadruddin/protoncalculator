@@ -163,6 +163,15 @@ const CAR_CATALOG = {
       ["2.0 TGDI AWD", 197930.8, 198800, { source: jaecooPdf("J8_AWD_Price_List") }],
     ], { effectiveAt: "2025-07-18" }),
   ],
+  OMODA: [
+    catalogModel("C9", "https://www.omodajaecoo.com.my/modelc9", [
+      ["2.0 TGDI 2WD", 167930.8, 168800, { source: jaecooPdf("C9_pricelist_2WD_PM"), note: "Matte Grey: +RM3,000." }],
+      ["2.0 TGDI AWD", 187930.8, 188800, { source: jaecooPdf("C9_pricelist_AWD_PM_new"), note: "Matte Grey / Matte Black: +RM3,000." }],
+    ], { checkedAt: "2026-10-03", effectiveAt: "2024-12-06" }),
+    catalogModel("C9 PHEV", jaecooPdf("C9_PHEV_Pricelist_PM_August"), [
+      ["1.5T SHS-P 3 DHT AWD", 208400, 208800],
+    ], { checkedAt: "2026-10-03", effectiveAt: "2026-08-01", powertrain: "PHEV", paintNote: "Matte Grey: +RM3,000." }),
+  ],
   Chery: [
     catalogModel("Tiggo Cross", cheryPdf("2025/07", "PM_Tiggo-Cross-Pricelists"), [["1.5 Turbo", 88400, 88800], ["1.5 Hybrid CSH", 99400, 99800]], { effectiveAt: "2025-07-09" }),
     catalogModel("Chery O5", cheryPdf("2025/09", "CHERY.MY_Chery-O5-Pricelist_PM"), [["1.5 Turbo", 116400, 116800]], { effectiveAt: "2025-09-10" }),
