@@ -16,7 +16,7 @@
     <header class="topbar"><img class="app-logo" src="/icon-192.png?v=20260930" width="52" height="52" alt="Car Loan MY" /><div><p class="eyebrow">ADMIN</p><h1>Car Loan MY</h1></div><button id="logoutButton" class="icon-button" title="Logout" aria-label="Logout" hidden><i data-lucide="log-out"></i></button></header>
     <p id="adminStatus" class="admin-status" role="status" aria-live="polite"></p>
     <section id="loginSection">
-      <h2>Login admin</h2>
+      <h2><i data-lucide="shield-check"></i> Login admin</h2>
       <form id="loginForm">
         <label><span>Email admin</span><input id="adminEmail" type="email" autocomplete="username" required placeholder="Email admin" /></label>
         <label><span>Password</span><span class="password-field"><input id="adminPassword" type="password" autocomplete="current-password" required maxlength="256" /><button id="togglePassword" type="button" class="icon-button" title="Tunjuk password" aria-label="Tunjuk password" aria-pressed="false"><i data-lucide="eye"></i></button></span></label>
@@ -25,13 +25,13 @@
     </section>
     <section id="adminDashboard" hidden>
       <section aria-labelledby="downloadsHeading">
-        <div class="analytics-heading"><h2 id="downloadsHeading">Rekod Download</h2><a class="secondary-action" href="/api/app?action=downloads-excel">Download Excel (.xlsx)</a></div>
+        <div class="analytics-heading"><h2 id="downloadsHeading"><i data-lucide="folder-down"></i> Rekod Download</h2><a class="secondary-action" href="/api/app?action=downloads-excel"><i data-lucide="file-spreadsheet"></i> Download Excel (.xlsx)</a></div>
         <p>Permintaan download disimpan, bukan pengesahan fail disimpan pada peranti.</p>
         <p id="downloadsStatus" role="status"></p><div id="downloadsList"></div>
-        <div class="admin-form-actions"><button id="downloadsPrevious" class="secondary-action" type="button">Sebelum</button><button id="downloadsNext" class="secondary-action" type="button">Seterusnya</button><button id="downloadsRefresh" class="secondary-action" type="button">Refresh</button></div>
+        <div class="admin-form-actions"><button id="downloadsPrevious" class="secondary-action" type="button"><i data-lucide="chevron-left"></i> Sebelum</button><button id="downloadsNext" class="secondary-action" type="button">Seterusnya <i data-lucide="chevron-right"></i></button><button id="downloadsRefresh" class="secondary-action" type="button"><i data-lucide="refresh-cw"></i> Refresh</button></div>
       </section>
       <section class="admin-analytics" aria-labelledby="trafficHeading">
-        <div class="analytics-heading"><h2 id="trafficHeading">Trafik &amp; peranti</h2><button id="statsRefresh" class="icon-button" title="Refresh statistik" aria-label="Refresh statistik"><i data-lucide="refresh-cw"></i></button></div>
+        <div class="analytics-heading"><h2 id="trafficHeading"><i data-lucide="chart-no-axes-combined"></i> Trafik &amp; peranti</h2><button id="statsRefresh" class="icon-button" title="Refresh statistik" aria-label="Refresh statistik"><i data-lucide="refresh-cw"></i></button></div>
         <p id="statsStatus" class="admin-subtitle" role="status"></p>
         <div class="traffic-periods">
           <div><h3>1 hari</h3><strong id="visits1">—</strong><span>lawatan</span><p id="devices1"></p></div>
@@ -41,10 +41,10 @@
         <dl class="device-stats"><div><dt><i data-lucide="bell-ring"></i> Notifikasi aktif</dt><dd id="notificationCount">—</dd></div><div><dt><i data-lucide="smartphone"></i> App telefon pernah dibuka</dt><dd id="phoneAppCount">—</dd></div><div><dt><i data-lucide="badge-check"></i> App telefon + notifikasi</dt><dd id="phonePushCount">—</dd></div></dl>
         <p class="admin-subtitle">Peranti/browser unik, bukan akaun pengguna. Lawatan baharu dikira selepas 30 minit. Tempoh bergerak mengikut 24 jam; trafik lama sebelum pengumpulan data tidak tersedia. Home Screen dikira apabila app telefon dibuka, bukan ketika ikon ditambah. Pemadaman app dan sekatan notifikasi OS tidak dapat dikesan serta-merta.</p>
       </section>
-      <div class="admin-section-heading"><div><h2>Hebahan</h2><p id="adminIdentity" class="admin-subtitle"></p></div><button id="refreshButton" class="icon-button" title="Refresh" aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
+      <div class="admin-section-heading"><div><h2><i data-lucide="megaphone"></i> Hebahan</h2><p id="adminIdentity" class="admin-subtitle"></p></div><button id="refreshButton" class="icon-button" title="Refresh" aria-label="Refresh"><i data-lucide="refresh-cw"></i></button></div>
       <div class="admin-workspace">
         <form id="announcementForm">
-          <h3>Hebahan baharu</h3>
+          <h3><i data-lucide="square-pen"></i> Hebahan baharu</h3>
           <label><span>Tajuk</span><input id="announcementTitle" maxlength="100" required /></label>
           <label><span>Mesej</span><textarea id="announcementMessage" maxlength="1500" required></textarea></label>
           <label><span>Link butang (optional)</span><input id="announcementLink" type="url" placeholder="https://" /></label>
@@ -52,7 +52,7 @@
           <p class="admin-subtitle">Hebahan baharu menggantikan popup aktif dan menghantar push ke semua peranti yang aktif melanggan.</p>
           <div class="admin-form-actions"><button id="previewButton" type="button" class="secondary-action"><i data-lucide="eye"></i> Preview</button><button id="publishButton" type="submit" class="primary-action"><i data-lucide="megaphone"></i> Terbitkan &amp; hantar push</button></div>
         </form>
-        <section aria-label="Senarai hebahan"><h3>Rekod hebahan</h3><div id="announcementList"></div></section>
+        <section aria-label="Senarai hebahan"><h3><i data-lucide="history"></i> Rekod hebahan</h3><div id="announcementList"></div></section>
       </div>
     </section>
   </main>

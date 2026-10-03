@@ -40,3 +40,40 @@ h3{font-size:16px;margin:0 0 18px}
 #adminDialogMessage{white-space:pre-wrap;overflow-wrap:anywhere}
 #previewLink{text-decoration:none}
 @media(max-width:700px){.admin-shell{padding:20px 18px}.admin-workspace{grid-template-columns:1fr;gap:32px}#loginSection{margin:40px auto}.admin-workspace>section{border-top:1px solid var(--line);padding-top:24px}.admin-section-heading{align-items:start}}
+
+/* Admin-only glass surfaces; calculator styling stays unchanged. */
+body{--ink:#202c35;--muted:#586b78;--line:#cddde580;background:linear-gradient(135deg,#e8f5f1 0%,#f0f6fb 45%,#fff0f3 100%);background-attachment:fixed;min-height:100dvh}
+.admin-shell{max-width:1060px;padding:20px 24px calc(28px + env(safe-area-inset-bottom))}
+.admin-shell .topbar{position:sticky;top:12px;z-index:5;margin-bottom:20px;padding:12px 16px;border:1px solid #ffffffd9;border-radius:20px;background:#ffffffb8;-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);box-shadow:0 8px 30px #2846540d,inset 0 1px 0 #fff}
+.admin-shell .topbar h1{font-size:21px}.admin-shell .eyebrow{color:#087e68}.admin-shell .app-logo{width:44px;height:44px;border-radius:10px}
+#logoutButton{margin-left:auto}
+.admin-shell h2,.admin-shell h3{display:flex;align-items:center;gap:9px;line-height:1.4}
+.admin-shell h2{font-size:18px}.admin-shell h3{font-size:15px}
+.admin-shell h2 svg,.admin-shell h3 svg{width:22px;height:22px;flex-shrink:0;color:#087e68}
+#downloadsHeading svg{color:#df365a}#trafficHeading svg{color:#1688b6}.admin-section-heading h2 svg{color:#b56b0b}
+.admin-shell button,.admin-shell a.secondary-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 13px;font-size:13px;border-radius:12px;text-decoration:none;transition:background .18s,box-shadow .18s,transform .18s}
+.admin-shell button svg,.admin-shell a svg{width:18px;height:18px;flex-shrink:0}
+.admin-shell .icon-button{width:44px;height:44px;padding:10px;background:#ffffffbd;border:1px solid #ffffff;box-shadow:0 2px 8px #28465409}
+.admin-shell .secondary-action{background:#ffffffad;border:1px solid #ffffffd9;color:#405c6c;box-shadow:0 2px 8px #28465408}
+.admin-shell .primary-action{background:linear-gradient(135deg,#078674,#147a59);border-color:#087e68;color:#fff;box-shadow:0 4px 12px #087e6824}
+.admin-shell button:hover:not(:disabled),.admin-shell a.secondary-action:hover{box-shadow:0 5px 15px #28465420;transform:translateY(-1px)}
+.admin-shell button:active:not(:disabled){transform:scale(.98)}.admin-shell button:disabled{opacity:.5;cursor:not-allowed}
+.admin-shell input,.admin-shell textarea{background:#ffffffb8;border-color:#c7d8e3;border-radius:10px;font-size:16px}.admin-shell input{height:46px}.admin-shell label{gap:6px}.admin-shell label>span{font-size:12px}
+#loginSection{max-width:420px;margin:48px auto;padding:24px;background:#ffffffb8;border:1px solid #fff;border-radius:20px;box-shadow:0 12px 36px #2846540d;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#loginForm{gap:16px;margin-top:20px}.password-field button{top:1px;right:2px!important;background:transparent!important;box-shadow:none!important}
+.admin-status:not(:empty){padding:10px 14px;border-radius:10px;background:#ffffffb3;border:1px solid #fff;font-size:13px}
+#adminDashboard{animation:admin-arrive .35s ease-out}#adminDashboard>section{padding:20px 0;border-top:1px solid var(--line)}
+.analytics-heading{flex-wrap:wrap;gap:10px}.admin-shell p{line-height:1.6;font-size:13px;overflow-wrap:anywhere}
+#downloadsStatus{color:var(--muted);font-size:12px}#downloadsList{margin:12px 0}
+#downloadsList>p{margin:8px 0;padding:12px 14px;background:#ffffffa6;border:1px solid #ffffffd9;border-radius:8px;line-height:1.7;font-size:13px}
+.traffic-periods{gap:10px;margin:16px 0}.traffic-periods>div{border:1px solid #ffffffd9;border-top:3px solid #08a58e;border-radius:8px;padding:13px;background:#ffffffa6;box-shadow:0 3px 12px #28465408}
+.traffic-periods>div:nth-child(2){border-top-color:#1694cb}.traffic-periods>div:nth-child(3){border-top-color:#ee5774}
+.traffic-periods h3{font-size:13px;margin-bottom:8px}.traffic-periods strong{font-size:30px;font-variant-numeric:tabular-nums}.traffic-periods p,.traffic-periods span{font-size:11px}
+.device-stats>div{padding:12px 0}.device-stats dd{font-size:23px;font-variant-numeric:tabular-nums}.device-stats dt{font-size:13px}.device-stats svg{color:#ca8b13}.device-stats>div:nth-child(2) svg{color:#1688b6}.device-stats>div:nth-child(3) svg{color:#087e68}
+.admin-section-heading{padding:18px 0}.admin-workspace{gap:28px;margin-top:18px}#announcementForm{gap:12px}#announcementMessage{min-height:140px}.admin-subtitle{font-size:12px!important}
+.announcement-row{padding:16px 0}.announcement-row h4{font-size:15px}.announcement-controls{gap:7px;margin-top:12px}.announcement-controls button{min-height:44px;font-size:12px}.announcement-badge{background:#d7f3e6;color:#09684f;border-radius:6px}
+#adminDialog{border:1px solid #fff;background:#fffffff0;box-shadow:0 24px 80px #20344233;-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);animation:admin-arrive .2s ease-out}
+@keyframes admin-arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:700px){.admin-shell{padding:12px 14px calc(24px + env(safe-area-inset-bottom))}.admin-shell .topbar{top:8px;padding:10px 12px;border-radius:16px}.admin-shell .topbar h1{font-size:19px}.admin-workspace{gap:22px}.admin-workspace>section{padding-top:18px}#loginSection{margin:28px auto;padding:20px}.analytics-heading>a{font-size:12px;padding:10px}.traffic-periods>div{padding:10px}.traffic-periods strong{font-size:26px}.admin-form-actions{gap:7px}.admin-form-actions button{padding:10px;font-size:12px}#publishButton{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){#adminDashboard,#adminDialog{animation:none}.admin-shell button,.admin-shell a{transition:none;transform:none!important}}
+@supports not (backdrop-filter:blur(1px)){.admin-shell .topbar,#loginSection{background:#f9fcfd}}

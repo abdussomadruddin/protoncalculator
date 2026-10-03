@@ -60,6 +60,9 @@ const root = path.resolve(__dirname, '..');
     await page.waitForFunction(() => document.querySelector('#visits30').textContent === '300');
     assert.equal(await page.locator('#notificationCount').textContent(), '42');
     assert.equal(await page.locator('#phonePushCount').textContent(), '20');
+    await page.locator('#adminDashboard').evaluate(async element => {
+      await Promise.all(element.getAnimations().map(animation => animation.finished));
+    });
     await page.screenshot({ path: '/tmp/car-loan-admin-stats-phone.png' });
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.screenshot({ path: '/tmp/car-loan-admin-stats-desktop.png' });
@@ -85,6 +88,7 @@ const root = path.resolve(__dirname, '..');
     for (const width of [320, 390, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No overflow at ' + width);
+      assert.ok(await page.locator('#statsRefresh').evaluate(element => element.getBoundingClientRect().height >= 44), 'Touch target at ' + width);
     }
     await page.screenshot({ path: '/tmp/car-loan-admin-publish.png' });
     await page.locator('#logoutButton').click();
