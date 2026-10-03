@@ -12,13 +12,14 @@
   function positionLens(id){const index=tabs.findIndex(t=>t[0]===id);nav.style.setProperty('--tab-index',Math.max(0,index));}
   let gesture=null,suppressClickUntil=0;
   let lastScroll=Math.max(0,scrollY),scrollTravel=0,scrollDirection=0,scrollFrame=0;
-  function revealTabs(){nav.classList.remove('is-scroll-hidden');nav.inert=false;}
+  function setTabsHidden(hidden){nav.classList.toggle('is-scroll-hidden',hidden);document.body.classList.toggle('tabs-scroll-hidden',hidden);nav.inert=hidden;}
+  function revealTabs(){setTabsHidden(false);}
   addEventListener('scroll',()=>{if(scrollFrame)return;scrollFrame=requestAnimationFrame(()=>{
     scrollFrame=0;const y=Math.max(0,Math.min(scrollY,document.documentElement.scrollHeight-innerHeight)),delta=y-lastScroll;lastScroll=y;
     if(document.querySelector('dialog[open]')||gesture||nav.querySelector(':focus-visible')){revealTabs();scrollTravel=0;return;}
     if(y<32){revealTabs();scrollTravel=0;return;}
     const direction=Math.sign(delta);if(!direction)return;if(direction!==scrollDirection)scrollTravel=0;scrollDirection=direction;scrollTravel+=Math.abs(delta);
-    if(scrollTravel>=(direction>0?24:10)){const hide=direction>0;nav.classList.toggle('is-scroll-hidden',hide);nav.inert=hide;scrollTravel=0;}
+    if(scrollTravel>=(direction>0?24:10)){setTabsHidden(direction>0);scrollTravel=0;}
   });},{passive:true});
   nav.addEventListener('focusin',revealTabs);
   nav.addEventListener('pointerdown',event=>{
