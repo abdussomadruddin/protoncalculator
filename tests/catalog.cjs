@@ -60,7 +60,7 @@ for (const [brand, models] of Object.entries(expected)) {
       assert.equal(vm.runInContext(`findOfficialRebate(${JSON.stringify(brand)}, ${JSON.stringify(model.name)}, ${JSON.stringify(variant.name)}, '2026', '2026-10-02')`, context), null);
     }
   }
-  assert.equal(vm.runInContext(`REBATE_AUDIT_SOURCES[${JSON.stringify(brand)}].checkedAt`, context), '2026-10-02');
+  assert.equal(vm.runInContext(`REBATE_AUDIT_SOURCES[${JSON.stringify(brand)}].checkedAt`, context), '2026-10-04');
 }
 assert.equal(catalog.Mitsubishi.find(m => m.name === 'Triton').variants.at(-1).needsConfirmation, true);
 assert.ok(!catalog.GWM.some(m => m.name.includes('ORA 5')));

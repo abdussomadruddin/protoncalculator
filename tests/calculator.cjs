@@ -164,6 +164,30 @@ function expectedRebate(brand, model, variant) {
     await page.locator('.price-details summary').click();
     assert.ok((await page.locator('#priceNote').innerText()).includes('Snapshot September'));
     assert.ok(!(await page.inputValue('#templateOutput')).includes('not for the current month'));
+    await page.clock.setSystemTime(new Date('2026-10-04T04:00:00Z'));
+    let confirmedOctober = 0;
+    for (const [brand, models] of Object.entries(catalog)) {
+      for (const model of models) {
+        for (const variant of model.variants) {
+          await select(brand, model.name, variant.name);
+          const expected = brand === 'Proton' ? (model.name === 'e.MAS 5' ? 3000 : model.name === 'e.MAS 7' ? 7000 : model.name === 'NEW S70 1.5 i-GT' && variant.name === 'Lite' ? 3000 : 0) : 0;
+          assert.equal(await page.inputValue('#rebate'), expected ? String(expected) : '', `October default: ${brand} ${model.name} ${variant.name}`);
+          v = await values();
+          assert.equal(v.rebate, expected);
+          assert.equal(v.inputPrice, variant.bodyPrice);
+          if (expected) confirmedOctober++;
+        }
+      }
+    }
+    assert.equal(confirmedOctober, 6);
+    await select('Proton', 'e.MAS 7', 'Premium Plus');
+    await page.fill('#rebate', '1234');
+    assert.equal((await values()).rebate, 1234);
+    await select('Proton', 'NEW S70 1.5 i-GT', 'Prime');
+    assert.equal(await page.inputValue('#rebate'), '');
+    await page.clock.setSystemTime(new Date('2026-10-05T04:00:00Z'));
+    await reset();
+    assert.equal((await values()).rebate, 0, 'Undated launch promotions must be reverified, not given an invented expiry');
     assert.deepEqual(errors, []);
     console.log(`PASS: ${Object.keys(catalog).length} brands, ${Object.values(catalog).flat().length} models, ${variants} variants; all periods, deposit, NCD, battery, confirmations, clipboard and 5 viewport sizes.`);
   } catch (error) {

@@ -3,20 +3,22 @@ const REBATE_CHECKED_AT = "2026-09-30";
 const rebateOffer = (amount, source, note, options = {}) => ({ amount, source, note, validFrom: "2026-09-01", verifiedThrough: REBATE_CHECKED_AT, ...options });
 const hondaRebate = (amount, note = "") => rebateOffer(amount, "https://www.honda.com.my/happening/", "Model 2026; pendaftaran 1–30 Sep 2026, varian/tahun eksais terpilih dan stok tersedia. " + note, { year: "2026", endsAt: "2026-09-30" });
 const cheryPriceOffer = (retail, promotion, year) => rebateOffer(retail - promotion, "https://www.chery.my/promotion/", "YOM " + year + "; beza retail dengan harga promosi OTR tanpa insurans rasmi. Stok terhad, tertakluk syarat.", { year, kind: "priceDifference", retail, promotion });
+// Preserve the September snapshot; undated launch offers are not assumed valid all October.
+const recheckedOctober = offer => [offer, { ...offer, validFrom: "2026-10-04", verifiedThrough: "2026-10-04", checkedAt: "2026-10-04", note: offer.note + " Disahkan semula di laman HQ pada 4 Okt 2026; tarikh tamat tidak diterbitkan." }];
 const OFFICIAL_REBATES = {
   Proton: {
     "NEW S70 1.5 i-GT": {
-      Lite: rebateOffer(3000, "https://www.proton.com/models/s70-prime-lite", "Harga pengenalan rasmi: RM59,800 → RM56,800. Tertakluk syarat dan stok.", { validFrom: "2026-09-22" }),
+      Lite: recheckedOctober(rebateOffer(3000, "https://www.proton.com/models/s70-prime-lite", "Harga pengenalan rasmi: RM59,800 → RM56,800. Tertakluk syarat dan stok.", { validFrom: "2026-09-22" })),
       Prime: rebateOffer(3000, "https://www.proton.com/models/s70-prime-lite", "Harga pengenalan rasmi: RM62,800 → RM59,800. Tertakluk syarat dan stok.", { validFrom: "2026-09-22" }),
     },
     "e.MAS 5": {
-      Prime: rebateOffer(3000, "https://emas.proton.com/e-mas-5/", "Beza retail RM59,800 dengan Special Launch Price RM56,800. Tawaran terhad; tidak termasuk trade-in."),
-      Premium: rebateOffer(3000, "https://emas.proton.com/e-mas-5/", "Beza retail RM72,800 dengan Special Launch Price RM69,800. Tawaran terhad; tidak termasuk trade-in."),
+      Prime: recheckedOctober(rebateOffer(3000, "https://emas.proton.com/e-mas-5/", "Beza retail RM59,800 dengan Special Launch Price RM56,800. Tawaran terhad; tidak termasuk trade-in.")),
+      Premium: recheckedOctober(rebateOffer(3000, "https://emas.proton.com/e-mas-5/", "Beza retail RM72,800 dengan Special Launch Price RM69,800. Tawaran terhad; tidak termasuk trade-in.")),
     },
     "e.MAS 7": {
-      Prime: rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in."),
-      Premium: rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in."),
-      "Premium Plus": rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in."),
+      Prime: recheckedOctober(rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in.")),
+      Premium: recheckedOctober(rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in.")),
+      "Premium Plus": recheckedOctober(rebateOffer(7000, "https://emas.proton.com/e-mas-7/", "Launch Rebate rasmi RM7,000; tawaran terhad. Tidak termasuk trade-in.")),
     },
     "e.MAS 7 PHEV": {
       Prime: rebateOffer(4000, "https://emas.proton.com/wp-content/uploads/2026/08/PROTON-e.MAS-7-PHEV-Price-List-Peninsular-Malaysia.pdf", "Special Launch Price rasmi; tawaran terhad. Tidak termasuk trade-in.", { validFrom: "2026-08-26" }),
@@ -45,18 +47,18 @@ const OFFICIAL_REBATES = {
   },
 };
 const REBATE_AUDIT_SOURCES = {
-  OMODA: { checkedAt: "2026-10-03", source: "https://www.omodajaecoo.com.my/", note: "Amaun cash rebate Oktober tepat setiap varian belum disahkan. Tawaran affiliate, overtrade dan sehingga tidak dianggap rebate umum; default dibiarkan kosong." },
-  Mitsubishi: { checkedAt: "2026-10-02", source: "https://www.mitsubishi-motors.com.my/brochures/", note: "Rebate Oktober tepat mengikut varian belum disahkan. Pakej ansuran, trade-in dan tawaran bersyarat tidak dianggap cash rebate umum." },
-  Mazda: { checkedAt: "2026-10-02", source: "https://www.mazda.com.my/vehicles", note: "Rebate Oktober tepat mengikut varian/tahun belum disahkan; tidak disimpulkan daripada beza harga MY25/MY26." },
-  GWM: { checkedAt: "2026-10-02", source: "https://www.gwm.com.my/en/models", note: "RM3,000 dalam risalah ialah GWM Owners Loyalty Offer, bukan rebate semua pembeli. Tawaran bersyarat tidak dimasukkan sebagai default." },
-  BYD: { checkedAt: "2026-10-02", source: "https://byd.simemotors.my/", note: "Rebate Oktober tepat mengikut varian belum disahkan. Harga RRP dan OTR tidak dikurangkan menggunakan promosi tidak disahkan." },
-  Proton: { source: "https://www.proton.com/offers/current-promotion/", note: "Kempen September menyatakan cash rebate sehingga RM9,000 tanpa amaun tepat setiap varian. Trade-in dan bonus tidak dimasukkan secara automatik." },
-  Perodua: { source: "https://www.perodua.com.my/", note: "Tiada amaun rebate pembelian tepat yang dapat disahkan untuk varian ini. Diskaun servis bukan rebate pembelian." },
-  Honda: { source: "https://www.honda.com.my/happening/", note: "Varian/tahun ini tidak mempunyai amaun tepat dalam jadual promosi yang disemak. Shared Rewards, One Nation dan bonus first-500 tidak dimasukkan secara automatik." },
-  Toyota: { source: "https://www.toyota.com.my/en/promotions/monthly-promo.html", note: "Promosi September yang diterbitkan tidak menyatakan cash rebate tepat mengikut varian. Ansuran EZ Beli dan servis bukan cash rebate." },
-  Jaecoo: { source: "https://www.omodajaecoo.com.my/merdeka-sales", note: "Kempen rasmi menyebut rebate sehingga atau overtrade; kelayakan/amaun tepat setiap varian tidak diterbitkan. Tidak digunakan sebagai rebate tetap." },
-  Chery: { source: "https://www.chery.my/promotion/", note: "Tawaran tepat untuk tahun/varian ini belum dapat dipadankan dengan pasti. Tawaran YOM 2025 dan pakej Tiggo 9 tidak digabungkan dengan tawaran lain." },
-  Jetour: { source: "https://jetour.com.my/discover/events-campaigns/", note: "Tiada amaun rebate pembelian September tepat untuk varian ini yang dapat disahkan. Promosi Januari, pertandingan dan kelayakan khas tidak digunakan." },
+  Proton: { checkedAt: "2026-10-04", source: "https://www.proton.com/offers/current-promotion/", note: "Kempen ICE masih bertarikh tamat 30 Sep. S70 Prime belum dipadankan tepat; e.MAS 7 PHEV terhad kepada 5,000 tempahan pertama, bukan rebate umum." },
+  Perodua: { checkedAt: "2026-10-04", source: "https://www.perodua.com.my/", note: "QV-E: harga laman HQ RM63,499/RM87,499 bercanggah dengan PDF RM53,499/RM77,499. Tiada default sehingga disahkan; model lain belum mempunyai rebate Oktober tepat." },
+  Honda: { checkedAt: "2026-10-04", source: "https://www.honda.com.my/happening/", note: "Kempen 1–31 Okt: jumlah rewards tidak memisahkan cash rebate setiap varian daripada bonus pemilik, early-bird dan kelayakan khas. Amaun September tidak dibawa ke Oktober." },
+  Toyota: { checkedAt: "2026-10-04", source: "https://www.toyota.com.my/en/promotions/monthly-promo.html", note: "Kempen Oktober: kebanyakan promosi sehingga/from atau voucher. Yaris Cross menawarkan pilihan pakej RM2,000 + voucher atau RM3,500; bukan satu rebate universal." },
+  Mitsubishi: { checkedAt: "2026-10-04", source: "https://www.mitsubishi-motors.com.my/current-offers/", note: "Kempen 1–31 Okt: Xforce/XPANDER mempunyai pakej alternatif warranty/servis/cash. Triton menyebut Diesel Support dan tahun model bercanggah; tidak dianggap rebate umum." },
+  Mazda: { checkedAt: "2026-10-04", source: "https://mazda.com.my/offers", note: "Tiada rebate tepat setiap varian disahkan. Poster limited-period bertarikh 6 Okt memaparkan harga from sahaja, bukan cash rebate universal." },
+  GWM: { checkedAt: "2026-10-04", source: "https://www.gwm.com.my/en/deal", note: "Halaman offers tidak memberikan cash rebate Oktober tepat. Loyalty, pakej dan kempen tamat September tidak dimasukkan." },
+  BYD: { checkedAt: "2026-10-04", source: "https://byd.simemotors.my/news-events", note: "Tiada rebate HQ Oktober tepat setiap varian dapat disahkan. Hadiah, cabutan bertuah dan promosi tamat September tidak digunakan." },
+  Jaecoo: { checkedAt: "2026-10-04", source: "https://www.omodajaecoo.com.my/", note: "Program affiliate memerlukan organisasi/kelayakan dan kelulusan HQ; bukan cash rebate umum. Amaun Oktober tepat belum disahkan." },
+  OMODA: { checkedAt: "2026-10-04", source: "https://www.omodajaecoo.com.my/", note: "Program affiliate bersyarat; amaun cash rebate Oktober tepat C9/C9 PHEV belum disahkan. Default kosong." },
+  Chery: { checkedAt: "2026-10-04", source: "https://www.chery.my/promotion/", note: "Laman masih berjudul kempen Merdeka/Malaysia Day; kesahan Oktober bagi tawaran YOM 2025/2026 belum disahkan. Tidak menyambung snapshot September." },
+  Jetour: { checkedAt: "2026-10-04", source: "https://jetour.com.my/discover/events-campaigns/", note: "Senarai kempen masih menawarkan promosi Januari dan diskaun penjawat awam bersyarat. Tiada rebate umum Oktober tepat disahkan." },
 };
 function findOfficialRebate(brand, model, variant, year, date) {
   const entry = OFFICIAL_REBATES[brand]?.[model]?.[variant];
