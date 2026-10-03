@@ -10,6 +10,12 @@ create table if not exists public.car_download_requests (
 alter table public.car_download_requests enable row level security;
 revoke all on public.car_download_requests from anon, authenticated;
 grant select, insert on public.car_download_requests to service_role;
+create or replace view public.car_download_contacts with (security_invoker = true) as
+select distinct on (whatsapp) id, created_at, name, whatsapp, snapshot
+from public.car_download_requests
+order by whatsapp, created_at desc, id desc;
+revoke all on public.car_download_contacts from public, anon, authenticated;
+grant select on public.car_download_contacts to service_role;
 create index if not exists car_download_rate_idx on public.car_download_requests(client_hash, created_at);
 create or replace function public.car_save_download(request_id uuid, person_name text, whatsapp text, calculation jsonb, client_hash text)
 returns boolean language plpgsql security definer set search_path = '' as $$

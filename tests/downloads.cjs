@@ -16,6 +16,8 @@ const { randomUUID } = require('node:crypto');
     for(let i=0;i<9;i++) assert.equal(await save(randomUUID()),true);
     assert.equal(await save(randomUUID()),false);
     assert.equal(await save(randomUUID(),'Test','other-client'),true);
+    assert.equal((await db.query('select count(*) from public.car_download_contacts')).rows[0].count,1);
+    assert.equal((await db.query('select count(*) from public.car_download_requests')).rows[0].count,11);
     for(const role of ['anon','authenticated']) {
       const result=await db.query("select has_table_privilege($1,'public.car_download_requests','select') as read, has_function_privilege($1,'public.car_save_download(uuid,text,text,jsonb,text)','execute') as execute",[role]);
       assert.equal(result.rows[0].read,false);assert.equal(result.rows[0].execute,false);

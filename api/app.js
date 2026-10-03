@@ -211,7 +211,7 @@ module.exports = async function handler(req, res) {
     if (action === 'downloads' && req.method === 'GET') {
       const page = Number(req.query.page || 1);
       if (!Number.isSafeInteger(page) || page < 1 || page > 100000) fail(400, 'Halaman tidak sah.');
-      const { data } = await supabase('/rest/v1/car_download_requests?select=id,created_at,name,whatsapp,snapshot&order=created_at.desc,id.desc&limit=21&offset=' + ((page - 1) * 20));
+      const { data } = await supabase('/rest/v1/car_download_contacts?select=id,created_at,name,whatsapp,snapshot&order=created_at.desc,id.desc&limit=21&offset=' + ((page - 1) * 20));
       return res.status(200).json({ records: data.slice(0,20), page, hasNext: data.length > 20 });
     }
     if (action === 'downloads-excel' && req.method === 'GET') {
@@ -222,7 +222,7 @@ module.exports = async function handler(req, res) {
       sheet.addRow(['ID','Masa Malaysia','Nama','WhatsApp',...keys]);
       const cutoff = new Date().toISOString();
       for (let offset = 0; ; offset += 500) {
-        const { data } = await supabase('/rest/v1/car_download_requests?select=id,created_at,name,whatsapp,snapshot&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
+        const { data } = await supabase('/rest/v1/car_download_contacts?select=id,created_at,name,whatsapp,snapshot&created_at=lte.' + encodeURIComponent(cutoff) + '&order=created_at.asc,id.asc&limit=500&offset=' + offset);
         for (const row of data) {
           // Explicit string values are written as XLSX text, never formulas.
           const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => row.snapshot[k] ?? '')]);
