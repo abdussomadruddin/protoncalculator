@@ -15,13 +15,17 @@ vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname, '..', 's
     clients: { matchAll: async () => windows, openWindow: async url => { opened = url; } } },
   URL, MessageChannel, setTimeout, clearTimeout,
 });
-async function click(id) {
+async function click(id, appointment = false) {
   let work; let closed = false;
-  handlers.notificationclick({ notification: { data: { announcementId: id }, close() { closed = true; } }, waitUntil(promise) { work = promise; } });
+  handlers.notificationclick({ notification: { data: appointment ? { appointmentId: id } : { announcementId: id }, close() { closed = true; } }, waitUntil(promise) { work = promise; } });
   await work; assert.ok(closed);
 }
 (async () => {
   await click('clicked-id'); assert.equal(opened, '/?announcement=clicked-id');
+  windows = []; await click('appointment-id',true);assert.equal(opened,'/?appointment=appointment-id');
+  windows=[{url:'https://app.test/',focus:async()=>{},postMessage(data,ports){assert.equal(data.type,'appointment');assert.equal(data.appointmentId,'appointment-id');ports[0].postMessage({handled:true});}}];
+  opened=null;await click('appointment-id',true);assert.equal(opened,null);
+  windows=[];
   let navigated;
   windows = [{ url: 'https://app.test/', focus: async () => {}, navigate: async url => { navigated = url; return windows[0]; },
     postMessage(data, ports) { assert.equal(data.announcementId, 'clicked-id'); assert.equal(data.force, true); ports[0].postMessage({ handled: true }); } }];

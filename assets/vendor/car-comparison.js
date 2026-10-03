@@ -43,10 +43,12 @@
     form.onchange = event => { if (event.target === e.brand) { models(); price(); } else if (event.target === e.model) { variants(); price(); } else if (event.target === e.variant) price(); else if(event.target === e.year) e.rebate.value = findOfficialRebate(e.brand.value,e.model.value,e.variant.value,e.year.value,localDate())?.amount || 0; update(); };
     form.oninput = event => { if(event.target.tagName !== 'SELECT') update(); }; grid.append(form); update();
   }
-  trigger.onclick = () => {
+  function prepare() {
     const a = calculateValues(); if (a.errors.length) { alert(a.errors.join('\n')); return; }
-    snapshots = []; grid.replaceChildren(); editor({...a,depositOption:getCheckedValue('depositOption'),customDeposit:Number(customDepositInput.value)||0},0); editor(a,1); dialog.showModal(); window.lucide?.createIcons();
-  };
+    snapshots = []; grid.replaceChildren(); editor({...a,depositOption:getCheckedValue('depositOption'),customDeposit:Number(customDepositInput.value)||0},0); editor(a,1); window.lucide?.createIcons(); return true;
+  }
+  trigger.onclick = () => { if (window.proWorkspace) window.proWorkspace.select('comparison'); else if(prepare()) dialog.showModal(); };
+  window.carComparison = { mount(container) { prepare(); container.append(grid,status,posterButton); } };
   posterButton.onclick = () => { dialog.close(); window.loanPoster.open(snapshots); };
   window.lucide?.createIcons();
 })();

@@ -13,6 +13,10 @@
 !package-lock.json
 !api
 !api/app.js
+!lib
+!lib/pro.cjs
+!lib/agents.cjs
+!assets/vendor/admin-agents.js
 !catalog.js
 !rebates.js
 !manifest.webmanifest
@@ -38,3 +42,5 @@
 !assets/vendor/qrcode-LICENSE
 !assets/vendor/agent-profile.js
 !assets/vendor/car-comparison.js
+!assets/vendor/pro-workspace.js
+!assets/vendor/pro-workspace.css

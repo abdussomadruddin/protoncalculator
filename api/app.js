@@ -130,6 +130,8 @@ module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   try {
     const action = req.query?.action;
+    if (action === 'pro-reminders' && req.method === 'POST') return await require('../lib/pro.cjs').reminders(req,res,{supabase,fail,pushReady});
+    if (action === 'pro-followup-reminders' && req.method === 'POST') return await require('../lib/pro.cjs').followupReminders(req,res,{supabase,fail,pushReady});
     if (!['GET', 'POST'].includes(req.method)) fail(405, 'Kaedah tidak dibenarkan.');
     if (action === 'config' && req.method === 'GET') return res.status(200).json({ ready: configured(), pushReady: pushReady(), vapidPublicKey: pushReady() ? process.env.VAPID_PUBLIC_KEY : null });
     if (!configured()) fail(503, 'Backend Car Loan MY belum dikonfigurasi.');
@@ -138,6 +140,7 @@ module.exports = async function handler(req, res) {
       if (JSON.stringify(req.body || {}).length > 12000) fail(413, 'Mesej terlalu besar.');
     }
     const body = req.body || {};
+    if (typeof action === 'string' && action.startsWith('pro-')) return await require('../lib/pro.cjs')(req,res,{supabase,fail,readCookie,uuid,validateSubscription,pushReady});
     if (action === 'download-request' || action === 'agent-profile') {
       requirePost(req);
       const id = uuid(body.id);
@@ -230,6 +233,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req, res);
+    if (typeof action === 'string' && action.startsWith('manage-agent-')) return await require('../lib/agents.cjs')(req,res,{supabase,fail,uuid,adminEmail:process.env.ADMIN_EMAIL});
     if (action === 'agent-stats' && req.method === 'GET') {
       const now = new Date(), cutoff = now.toISOString(), firstRecorded = new Map();
       // A WhatsApp is counted on its first record, not on every poster download.
@@ -268,7 +272,7 @@ module.exports = async function handler(req, res) {
         for (const row of data) {
           // Explicit string values are written as XLSX text, never formulas.
           const cars = row.snapshot?.cars || [row.snapshot || {}];
-          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => cars[0][k] ?? ''),...keys.map(k=>cars[1]?.[k] ?? ''),row.snapshot?.kind === 'agent-profile' ? 'Profil Ejen' : 'Download poster']);
+          const added = sheet.addRow([String(row.id),new Date(row.created_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}),String(row.name),String(row.whatsapp),...keys.map(k => cars[0][k] ?? ''),...keys.map(k=>cars[1]?.[k] ?? ''),row.snapshot?.kind === 'pro-registration' ? 'Daftar PRO' : row.snapshot?.kind === 'agent-profile' ? 'Profil Ejen' : 'Download poster']);
           added.getCell(4).numFmt = '@';
         }
         if (data.length < 500) break;

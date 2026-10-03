@@ -22,6 +22,7 @@ const root = path.resolve(__dirname,'..');
     await page.route('https://comparison.test/**',async route => {
       const url = new URL(route.request().url());
       if(url.pathname === '/api/app') {
+        if(url.searchParams.get('action') === 'pro-session') return route.fulfill({json:{email:'agent@test.example',active:true}});
         if(url.searchParams.get('action') === 'download-request') { saves.push(route.request().postDataJSON()); return route.fulfill({status:fail?503:200,json:fail?{error:'Test database failure'}:{saved:true}}); }
         if(url.searchParams.get('action') === 'agent-profile') { profiles.push(route.request().postDataJSON()); return route.fulfill({status:failProfile?503:200,json:failProfile?{error:'Test profile failure'}:{saved:true}}); }
         return route.fulfill({json:{ready:false}});
@@ -31,7 +32,7 @@ const root = path.resolve(__dirname,'..');
     });
     await page.goto('https://comparison.test/');
     if(await page.locator('#appDialog').isVisible()) await page.locator('#dialogClose').click();
-    await page.getByRole('button',{name:'Banding Kereta'}).click();
+    await page.getByRole('tab',{name:'Comparison PRO'}).click();
     const forms = page.locator('.comparison-car');
     await forms.nth(1).locator('[name=brand]').selectOption('Perodua');
     await forms.nth(1).locator('[name=model]').selectOption('QV-E');
@@ -126,8 +127,8 @@ const root = path.resolve(__dirname,'..');
     await profile.getByRole('button',{name:'Simpan profil',exact:true}).click();
     assert.equal(profiles.length,profileCount,'Storage retry must not duplicate admin record');
     await profile.getByRole('button',{name:'Tutup',exact:true}).click();
-    await page.getByRole('button',{name:'Banding Kereta'}).click();
-    for(const width of [320,390,768,1280]) {await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.querySelector('.comparison-dialog').scrollWidth<=document.querySelector('.comparison-dialog').clientWidth));}
+    await page.getByRole('tab',{name:'Comparison PRO'}).click();
+    for(const width of [320,390,768,1280]) {await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.querySelector('.pro-pane').scrollWidth<=document.querySelector('.pro-pane').clientWidth));}
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/car-loan-comparison-phone.png'});
     assert.deepEqual(errors,[]); await context.close();
     console.log('PASS comparison/profile: independent brands, terms 1–9, downpayment/insurance/NCD, battery, invalid rebate, QR decoded, legacy profile, profile reload without company logo, DB failure/retry, share activation retry and cancellation, responsive layouts. Phone sharing is mocked, not physical-device verification.');

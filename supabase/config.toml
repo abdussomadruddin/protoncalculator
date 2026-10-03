@@ -1,5 +1,5 @@
 project_id = "car-loan-my"
 
 [auth]
-site_url = "https://protoncalculator.vercel.app/admin"
-additional_redirect_urls = ["https://protoncalculator.vercel.app/admin"]
+site_url = "https://carloanmalaysia.vercel.app/"
+additional_redirect_urls = ["https://protoncalculator.vercel.app/admin", "https://carloanmalaysia.vercel.app/admin", "https://protoncalculator.vercel.app/", "https://carloanmalaysia.vercel.app/"]
