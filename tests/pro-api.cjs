@@ -20,9 +20,10 @@ test('agent login and registration use password auth and HttpOnly cookies, never
   global.fetch=async(url,opts)=>{assert.ok(url.includes('grant_type=password'));assert.equal(opts.headers.apikey,'public-key');return new Response(JSON.stringify({access_token:'access-token',refresh_token:'refresh-token',user}));};
   const res=await request('pro-login',{body:{email:user.email,password:'password123'}});assert.equal(res.code,200);assert.ok(res.headers['Set-Cookie'].every(c=>c.includes('HttpOnly; Secure; SameSite=Strict')&&!c.includes('carloan-admin')));assert.deepEqual(res.data,{email:user.email});
   assert.equal((await request('pro-login',{body:{email:user.email,password:'short'}})).code,400);
-  global.fetch=async()=>new Response(JSON.stringify({user:{...user,email_confirmed_at:null}}));
   assert.equal((await request('pro-register',{body:{email:user.email,password:'password123'}})).code,400);
-  assert.deepEqual((await request('pro-register',{body:{email:user.email,password:'password123',name:'Agent',phone:'0173559147'}})).data,{confirmation:true});
+  const calls=[];global.fetch=async(url,opts)=>{calls.push(url);const body=JSON.parse(opts.body);if(url.includes('/rpc/car_save_download'))return new Response('true');if(url.endsWith('/auth/v1/admin/users')){assert.equal(body.email_confirm,true);assert.equal(body.user_metadata.whatsapp,'+60173559147');assert.equal(opts.headers.apikey,'service-secret');return new Response(JSON.stringify(user));}assert.ok(url.includes('grant_type=password'));return new Response(JSON.stringify({access_token:'access-token',refresh_token:'refresh-token',user}));};
+  const registered=await request('pro-register',{body:{email:user.email,password:'password123',name:'Agent',phone:'0173559147'}});assert.equal(registered.code,200);assert.deepEqual(registered.data,{email:user.email});assert.equal(registered.headers['Set-Cookie'].length,2);assert.ok(!calls.some(url=>url.includes('/signup')));
+  global.fetch=async()=>new Response(JSON.stringify({user:{...user,email_confirmed_at:null}}));
   assert.equal((await request('pro-login',{body:{email:user.email,password:'password123'}})).code,401);
 });
 test('refresh restores only agent session and no private token is returned',async()=>{

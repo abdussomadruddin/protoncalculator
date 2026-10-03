@@ -45,14 +45,17 @@
     const status=el('p','pro-error');status.setAttribute('role','status');const submit=el('button','primary-action',authMode==='login'?'Login':'Daftar');submit.type='submit';form.append(status,submit);form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;status.textContent='Menyemak...';try{const result=await api('pro-'+authMode,{...Object.fromEntries(new FormData(form)),tab:current});if(result.confirmation){status.textContent='Semak email untuk pengesahan, kemudian login.';return;}agent=null;await select(current);}catch(error){status.textContent=error.message;}finally{submit.disabled=false;}};pane.append(form);icons();
   }
   async function linkDevice(){try{const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager.getSubscription();const token=localStorage.getItem('carloan-device-token');if(sub&&token)await api('pro-device',{subscription:sub.toJSON(),deviceToken:token});}catch(e){if(current==='appointment')message('Reminder belum disambungkan: '+e.message,'pro-error');}}
+  let sessionPending=null;
+  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
   async function select(id){if(!tabs.some(t=>t[0]===id))id='calculator';current=id;positionLens(id);const version=++generation;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));workspace.hidden=id!=='calculator';pane.hidden=id==='calculator';
     if(id==='calculator'){icons();return;}
-    pane.replaceChildren(el('p','pro-subtle','Menyemak sesi PRO...'));
-    try{if(!agent)agent=await api('pro-session');if(version!==generation)return;if(!agent.active){pane.replaceChildren();heading('Ejen PRO','shield-check');message('Tempoh percuma telah tamat. Hubungi support. Tiada caj automatik.');return;}
+    if(agent&&id!=='comparison'&&agent.active)render();
+    else{pane.replaceChildren();const meta=tabs.find(t=>t[0]===id);heading(meta[1],meta[2]);const loading=el('div','pro-loading');loading.setAttribute('role','status');loading.setAttribute('aria-label','Memuatkan');loading.innerHTML='<i data-lucide="loader-circle"></i>';pane.append(loading);icons();}
+    try{if(!agent)await restoreSession();if(version!==generation)return;if(!agent.active){pane.replaceChildren();heading('Ejen PRO','shield-check');message('Tempoh percuma telah tamat. Hubungi support. Tiada caj automatik.');return;}
       if(id==='comparison'){pane.replaceChildren();heading('Comparison','git-compare-arrows');const capture=button('Gunakan kiraan calculator semasa',()=>{comparison.replaceChildren();window.carComparison.mount(comparison);icons();});pane.append(capture);if(!comparison){comparison=el('div','pro-comparison');window.carComparison.mount(comparison);}pane.append(comparison);icons();return;}
       const result=await api(id==='appointment'?'pro-appointments':'pro-cases');if(version!==generation)return;
       if(id==='appointment'){appointments=result.records;const cases=await api('pro-cases');if(version!==generation)return;records=cases.records;}else records=result.records;
-      render();linkDevice();
+      if(!pane.contains(document.activeElement))render();linkDevice();
     }catch(error){if(version!==generation)return;if(error.status===401){agent=null;auth();}else{pane.replaceChildren();heading(tabs.find(t=>t[0]===id)[1],tabs.find(t=>t[0]===id)[2]);message(error.message,'pro-error');pane.append(button('Cuba semula',()=>select(id)));}}
   }
   function render(){pane.replaceChildren();const meta=tabs.find(t=>t[0]===current);heading(meta[1],meta[2]);const toolbar=el('div','pro-toolbar'),search=el('input');search.type='search';search.placeholder='Cari nama / WhatsApp';search.setAttribute('aria-label','Cari rekod');toolbar.append(search,button('Refresh',()=>select(current)));
@@ -103,4 +106,5 @@
   if(confirmation){history.replaceState(null,'',location.pathname);workspace.hidden=true;pane.hidden=false;pane.append(el('p','pro-subtle','Mengesahkan email...'));api('pro-confirm',{token_hash:confirmation}).then(result=>select(result.next)).catch(error=>{current='case';authMode='login';auth();message(error.message,'pro-error');});}
   else if(new URLSearchParams(location.search).has('appointment'))select('appointment');
   else if(new URLSearchParams(location.search).has('followup'))select('followup');
+  else restoreSession().catch(()=>{});
 })();

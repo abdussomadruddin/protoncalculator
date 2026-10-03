@@ -29,3 +29,5 @@ body{background:#f2f6f7;-webkit-tap-highlight-color:transparent}
 @media(max-width:540px){.app-shell{padding-bottom:185px}.actions{bottom:calc(81px + env(safe-area-inset-bottom));padding:8px 18px;border:0;background:#fffffff2}.pro-list{grid-template-columns:1fr}.pro-heading h2{font-size:21px}.pro-form-grid{grid-template-columns:1fr}.pro-tabs{width:calc(100% - 16px)}.pro-tabs button{font-size:9px}.pro-editor{padding:16px}}
 @media(prefers-reduced-motion:no-preference){.pro-pane{animation:pro-enter .18s ease-out}@keyframes pro-enter{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}}
 @media(max-width:540px){.app-shell{padding-bottom:162px}.pro-tabs{width:calc(100% - 24px);max-width:460px}.actions{bottom:calc(73px + env(safe-area-inset-bottom));padding:7px 16px}.pro-editor{padding:14px}}
+.pro-loading{display:flex;justify-content:center;padding:20px;color:#167c69}.pro-loading svg{width:24px;height:24px}
+@media(prefers-reduced-motion:no-preference){.pro-loading svg{animation:pro-loading-spin 1s linear infinite}@keyframes pro-loading-spin{to{transform:rotate(360deg)}}}

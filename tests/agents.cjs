@@ -10,6 +10,6 @@ async function run(action,body){calls=[];const res={status(n){this.code=n;return
   await run('manage-agent-delete',{id,confirm:true,confirmEmail:user.email});assert.equal(calls[1].options.method,'PUT');assert.equal(calls[1].options.body.app_metadata.pro_disabled,true);assert.ok(!calls.some(c=>c.options?.method==='DELETE'));
   await run('manage-agent-edit',{id,email:user.email,name:'Updated',phone:'0173559147'});assert.equal(calls[1].options.body.user_metadata.whatsapp,'+60173559147');assert.equal(calls[2].options.body.whatsapp,'+60173559147');
   await assert.rejects(run('manage-agent-create',{email:user.email,name:'Agent',phone:'bad',password:'password123'}));
-  await run('manage-agent-create',{email:user.email,name:'Agent',phone:'0173559147',password:'password123'});assert.equal(calls[0].options.service,false);assert.equal(calls[0].options.body.data.carloan_pro,true);
+  await run('manage-agent-create',{email:user.email,name:'Agent',phone:'0173559147',password:'password123'});assert.equal(calls[0].options.body.email_confirm,true);assert.equal(calls[0].options.body.user_metadata.carloan_pro,true);
   console.log('PASS agent management: admin exclusion, double confirmation, non-destructive disable, contact edit sync and confirmed signup.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
