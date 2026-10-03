@@ -217,3 +217,19 @@ button{transition:background .18s,transform .18s}
  .app-dialog{padding:22px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.app-dialog.settings-dialog,.app-dialog.pro-features-dialog{padding:16px}
+.settings-dialog .dialog-top,.pro-features-dialog .dialog-top{margin-bottom:10px}
+.settings-dialog .dialog-top img,.pro-features-dialog .dialog-top img{width:40px;height:40px}
+.settings-dialog .dialog-top .icon-button,.pro-features-dialog .dialog-top .icon-button{width:44px;height:44px;min-height:44px}
+.settings-dialog h2,.pro-features-dialog h2{font-size:20px;margin:0 0 12px}
+.settings-dialog #dialogDescription:empty{display:none}
+.settings-dialog .dialog-kicker,.pro-features-dialog .dialog-kicker{margin-bottom:4px}
+.settings-dialog .dialog-menu{display:grid;gap:6px;margin:0}
+.settings-dialog .dialog-menu button,.settings-dialog .dialog-menu .support-whatsapp{min-height:44px;margin:0;padding:9px 12px;font-size:14px;gap:10px}
+.settings-dialog .dialog-menu svg,.settings-dialog .dialog-menu img{width:20px;height:20px;flex-shrink:0}
+.pro-features-dialog #dialogDescription{font-size:12px;line-height:1.45;margin-bottom:10px}
+.pro-feature-list section{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.pro-feature-list section>svg{width:22px;height:22px;flex-shrink:0;color:#087e68}
+.pro-feature-list section:nth-child(2)>svg{color:#bb315b}.pro-feature-list section:nth-child(3)>svg{color:#277ea3}.pro-feature-list section:nth-child(4)>svg{color:#aa720a}.pro-feature-list section:nth-child(5)>svg{color:#6850a8}
+.pro-feature-list h3{font-size:14px;margin:0 0 4px}.pro-feature-list p{font-size:12px;line-height:1.45;margin:0}
+.pro-features-dialog>.primary-action{min-height:44px;font-size:14px;padding:10px}

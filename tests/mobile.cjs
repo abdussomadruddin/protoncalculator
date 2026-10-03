@@ -90,6 +90,19 @@ async function mockInstalled(page, permission, existing = true, installed = true
     await ios.screenshot({ path: '/tmp/car-loan-ios-install.png', animations: 'disabled' });
     await ios.locator('#dialogClose').click();
     await ios.locator('#appMenuButton').click();
+    for(const [width,height] of [[320,568],[390,664],[430,844]]){
+      await ios.setViewportSize({width,height});
+      await ios.locator('#appDialog').evaluate(async dialog=>{await Promise.all(dialog.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));});
+      assert.equal(await ios.locator('.dialog-menu button').count(),5);
+      assert.ok(await ios.locator('#appDialog').evaluate(d=>d.scrollHeight<=d.clientHeight+1),'Settings fits phone without scrolling '+width);
+      for(const button of await ios.locator('.dialog-menu button,.dialog-menu a').all())assert.ok((await button.boundingBox()).height>=44);
+    }
+    await ios.setViewportSize({width:390,height:844});
+    await ios.getByRole('button',{name:'Semua Fungsi PRO',exact:true}).click();
+    assert.equal(await ios.locator('.pro-feature-list section').count(),5);
+    assert.match(await ios.locator('.pro-feature-list').innerText(),/8 pagi/);
+    await ios.getByRole('button',{name:'Kembali ke Tetapan',exact:true}).click();
+    assert.equal(await ios.locator('#dialogTitle').innerText(),'Tetapan app');
     await ios.getByRole('link',{name:'Hubungi Support',exact:true}).locator('img').evaluate(image=>image.decode());
     await ios.screenshot({path:'/tmp/car-loan-support-phone.png',animations:'disabled'});
     await ios.locator('#dialogClose').click();

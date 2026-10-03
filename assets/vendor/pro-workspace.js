@@ -104,7 +104,7 @@
     d.showModal();icons();
   }
   async function history(record){const d=dialog('Sejarah · '+record.name),status=el('p','pro-subtle','Memuatkan...');d.append(status);d.showModal();try{const {records:events}=await api('pro-history',undefined,'&id='+encodeURIComponent(record.id));status.remove();const list=el('ul','pro-history');for(const event of events)list.append(el('li','',date(event.created_at)+'\n'+event.status+'\n'+event.remark));d.append(list);}catch(e){status.textContent=e.message;}}
-  window.proWorkspace={select,isFollowUp:due};icons();
+  window.proWorkspace={select,isFollowUp:due,openProfile:()=>{if(agent){window.agentProfile.open();return;}authMode='register';current='case';generation++;positionLens(current);nav.querySelectorAll('button').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.tab===current)));workspace.hidden=true;pane.hidden=false;revealTabs();auth();}};icons();
   addEventListener('carloan-notification-synced',()=>{if(agent)linkDevice();});
   navigator.serviceWorker?.addEventListener('message',event=>{if(['appointment','followup'].includes(event.data?.type)){event.ports?.[0]?.postMessage({handled:true});select(event.data.type==='followup'?'followup':'appointment');}});
   let refreshing=false;

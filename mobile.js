@@ -46,6 +46,7 @@
     return data;
   };
   function show({ heading, text, button, run, dismissible = true, alternative, alternateRun }) {
+    dialog.classList.remove('settings-dialog','pro-features-dialog');
     displayedAnnouncement = null;
     locked = !dismissible;
     title.textContent = heading;
@@ -200,10 +201,12 @@
     } finally { action.disabled = false; }
   }
   function settings() {
-    show({ heading: 'Tetapan app', text: 'Car Loan MY', button: null });
+    show({ heading: 'Tetapan app', text: '', button: null });
+    dialog.classList.add('settings-dialog');
     const menu = document.createElement('div'); menu.className = 'dialog-menu';
     const options = [
-      ['contact', 'Profil Ejen', () => { dialog.close(); window.agentProfile.open(); }],
+      ['contact', 'Profil Ejen', () => { dialog.close(); window.proWorkspace.openProfile(); }],
+      ['sparkles', 'Semua Fungsi PRO', proFeatures],
       ['download', 'Add to Home Screen', installGuide],
       ['bell-ring', 'Notification', notificationGate],
       ['megaphone', 'Hebahan terkini', () => checkAnnouncement(true)],
@@ -218,6 +221,22 @@
     const whatsapp = document.createElement('img'); whatsapp.src = '/assets/icons/whatsapp.svg'; whatsapp.alt = ''; whatsapp.width = 22; whatsapp.height = 22;
     support.append(whatsapp, document.createTextNode('Hubungi Support')); menu.append(support);
     content.append(menu); icons();
+  }
+  function proFeatures() {
+    show({heading:'Semua Fungsi PRO',text:'Calculator percuma tanpa akaun. Empat tab PRO percuma sehingga 31 Disember 2026.',button:'Kembali ke Tetapan',run:settings});
+    dialog.classList.add('pro-features-dialog');
+    const list=document.createElement('div');list.className='pro-feature-list';
+    for(const [iconName,label,text] of [
+      ['calculator','Calculator','Kira ansuran ikut kereta, rebate, insurans/NCD, downpayment, kadar faedah dan tempoh. Copy WhatsApp atau simpan poster JPG.'],
+      ['git-compare-arrows','Comparison · PRO','Banding dua kereta dengan tetapan loan berasingan. Lihat ansuran, jumlah faedah dan bayaran loan; simpan poster dua kereta.'],
+      ['folder-kanban','Case · PRO','Rekod pelanggan dan kereta dari Document collected hingga Delivered atau Cancelled. Tukar status, simpan remark, lihat sejarah dan hubungi pelanggan.'],
+      ['clock-3','Follow Up · PRO','Case tanpa kemas kini status atau remark selama 3 hari muncul di sini. Rejected, Delivered dan Cancelled dikecualikan. Reminder push pada 8 pagi waktu Malaysia jika ada case.'],
+      ['calendar-days','Appointment · PRO','Rekod Test Drive atau Delivery, tarikh, masa, lokasi dan nota. Reminder push 3 hari, 1 hari, 4 jam dan 1 jam sebelum appointment; notification perlu aktif.'],
+    ]) {
+      const row=document.createElement('section'),icon=document.createElement('i'),copy=document.createElement('div'),heading=document.createElement('h3'),description=document.createElement('p');
+      icon.dataset.lucide=iconName;heading.textContent=label;description.textContent=text;copy.append(heading,description);row.append(icon,copy);list.append(row);
+    }
+    content.append(list);icons();
   }
   async function checkAnnouncement(force = false, id) {
     if (!force && (announcementLoading || locked || (dialog.open && !displayedAnnouncement))) return;
