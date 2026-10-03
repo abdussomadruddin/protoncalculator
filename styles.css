@@ -166,7 +166,8 @@ button{transition:background .18s,transform .18s}
 .poster-dialog canvas{width:100%;height:auto;display:block;margin-bottom:24px}
 .poster-dialog form{display:grid;gap:12px}
 .poster-dialog label{display:grid;gap:6px}
-.poster-dialog form .primary-action{width:100%}
+.poster-dialog form .primary-action,.poster-dialog form .secondary-action{width:auto;min-height:40px;padding:9px 16px;font-size:14px;justify-self:start}
+.poster-dialog form [role=status]:empty{display:none}
 .dialog-kicker{font-size:11px;font-weight:800;color:var(--accent);margin:0 0 8px}
 .app-dialog h2{font-size:25px;line-height:1.2;margin-bottom:12px;overflow-wrap:anywhere}
 .app-dialog p{font-size:14px;line-height:1.65}

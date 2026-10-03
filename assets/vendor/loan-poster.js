@@ -4,22 +4,20 @@
   dialog.style.maxHeight = '90dvh';
   dialog.style.overflowY = 'auto';
   dialog.setAttribute('aria-label', 'Preview gambar loan');
-  dialog.innerHTML = '<div class="dialog-top"><h2>Preview gambar loan</h2><button type="button" class="icon-button" aria-label="Tutup"><i data-lucide="x"></i></button></div><canvas width="1080" height="1350" role="img" aria-label="Poster perbandingan loan"></canvas><form><label>Nama<input name="name" required maxlength="100" autocomplete="name"></label><label>No WhatsApp<input name="phone" required type="tel" autocomplete="tel" placeholder="0123456789"></label><p>Nama dan nombor WhatsApp direkodkan untuk permintaan download ini.</p><p role="status"></p><button class="primary-action" type="submit">Simpan & Download</button></form>';
+  dialog.innerHTML = '<div class="dialog-top"><h2>Preview gambar loan</h2><button type="button" class="icon-button" aria-label="Tutup"><i data-lucide="x"></i></button></div><canvas width="1080" height="1350" role="img" aria-label="Poster loan"></canvas><form><label>Nama<input name="name" required maxlength="100" autocomplete="name"></label><label>No WhatsApp<input name="phone" required type="tel" autocomplete="tel" placeholder="0123456789"></label><p role="status"></p><button class="primary-action" type="submit">Simpan & Download</button></form>';
   document.body.append(dialog);
   dialog.querySelectorAll('input').forEach(input => { input.style.width = '100%'; input.style.margin = '8px 0 16px'; });
   dialog.querySelector('.icon-button').onclick = () => dialog.close();
   const canvas = dialog.querySelector('canvas'), ctx = canvas.getContext('2d');
   const form = dialog.querySelector('form'), status = form.querySelector('[role=status]');
   const contactKey = 'car-loan-my-poster-contact';
-  const contactSummary = document.createElement('p');
   const editContact = document.createElement('button');
   editContact.type = 'button'; editContact.className = 'secondary-action';
   editContact.textContent = 'Edit nama & WhatsApp';
-  form.prepend(contactSummary, editContact);
+  form.prepend(editContact);
   function contactMode(saved) {
     form.querySelectorAll('label').forEach(label => { label.hidden = saved; });
-    contactSummary.hidden = !saved; editContact.hidden = !saved;
-    contactSummary.textContent = form.elements.name.value + ' · ' + form.elements.phone.value;
+    editContact.hidden = !saved;
   }
   function loadContact() {
     try {
@@ -56,7 +54,7 @@
         status.textContent = 'Menu telefon dibuka. Pilih Save Image atau Save to Files jika tersedia.';
       } else { downloadLink.click(); status.textContent = 'Download JPG dimulakan. Semak Downloads pada peranti.'; }
     } catch(error) {
-      status.textContent = error.name === 'AbortError' ? 'Simpanan dibatalkan. Tekan Simpan Gambar untuk cuba semula.' : 'Rekod disimpan. Tekan Simpan Gambar sekali lagi untuk buka menu telefon.';
+      status.textContent = error.name === 'AbortError' ? '' : 'Tekan Simpan Gambar untuk cuba semula.';
     }
   }
   for (const input of [form.elements.name, form.elements.phone]) input.addEventListener('input',clearSaved);
