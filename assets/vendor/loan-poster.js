@@ -10,33 +10,29 @@
   dialog.querySelector('.icon-button').onclick = () => dialog.close();
   const canvas = dialog.querySelector('canvas'), ctx = canvas.getContext('2d');
   const form = dialog.querySelector('form'), status = form.querySelector('[role=status]');
-  const saveButton = document.createElement('button');
-  saveButton.type = 'button'; saveButton.className = 'primary-action';
-  saveButton.textContent = 'Simpan Gambar'; saveButton.hidden = true;
-  form.append(saveButton);
+  const saveButton = form.querySelector('[type=submit]');
   const downloadLink = document.createElement('a');
   downloadLink.className = 'secondary-action'; downloadLink.textContent = 'Download JPG';
   downloadLink.hidden = true; downloadLink.download = 'car-loan-my.jpg';
-  form.append(downloadLink);
   let savedFile = null, savedUrl = null;
   const phoneDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function clearSaved() {
-    savedFile = null; saveButton.hidden = true; downloadLink.hidden = true;
+    savedFile = null; saveButton.textContent = 'Simpan & Download';
     if (savedUrl) URL.revokeObjectURL(savedUrl);
     savedUrl = null; downloadLink.removeAttribute('href');
   }
-  saveButton.onclick = async () => {
+  async function saveImage() {
     if (!savedFile) return;
     try {
-      if (navigator.canShare?.({files:[savedFile]})) {
+      if (phoneDevice && navigator.canShare?.({files:[savedFile]})) {
         // Invoke sharing directly from this tap, before any asynchronous work.
         await navigator.share({files:[savedFile],title:'Car Loan MY'});
         status.textContent = 'Menu telefon dibuka. Pilih Save Image atau Save to Files jika tersedia.';
       } else { downloadLink.click(); status.textContent = 'Download JPG dimulakan. Semak Downloads pada peranti.'; }
     } catch(error) {
-      status.textContent = error.name === 'AbortError' ? 'Simpanan dibatalkan. Tekan Simpan Gambar untuk cuba semula.' : 'Menu simpan tidak tersedia. Gunakan Download JPG.';
+      status.textContent = error.name === 'AbortError' ? 'Simpanan dibatalkan. Tekan Simpan Gambar untuk cuba semula.' : 'Rekod disimpan. Tekan Simpan Gambar sekali lagi untuk buka menu telefon.';
     }
-  };
+  }
   for (const input of [form.elements.name, form.elements.phone]) input.addEventListener('input',clearSaved);
   let snapshot, requestId, busy = false;
   const money = n => 'RM ' + Number(n).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -111,6 +107,11 @@
   };
   form.onsubmit = async event => {
     event.preventDefault(); if(busy) return;
+    if (savedFile) {
+      busy = true; saveButton.disabled = true;
+      try { await saveImage(); } finally { busy = false; saveButton.disabled = false; }
+      return;
+    }
     const phone=form.elements.phone.value.replace(/[\s()-]/g,'').replace(/^\+/, '').replace(/^0/,'60');
     if(!/^601(?:1\d{8}|[02-9]\d{7})$/.test(phone)) {status.textContent='Masukkan nombor telefon Malaysia yang sah.'; return;}
     busy=true; const button=form.querySelector('[type=submit]'); button.disabled=true;
@@ -124,13 +125,8 @@
       clearSaved();
       savedFile = new File([blob],'car-loan-my.jpg',{type:'image/jpeg'});
       savedUrl = URL.createObjectURL(blob); downloadLink.href = savedUrl;
-      if (phoneDevice && navigator.canShare?.({files:[savedFile]})) {
-        saveButton.hidden = false; downloadLink.hidden = false;
-        status.textContent = 'Rekod disimpan. Tekan Simpan Gambar, kemudian pilih Save Image atau Save to Files dalam menu telefon.';
-      } else {
-        downloadLink.hidden = false; downloadLink.click();
-        status.textContent = 'Rekod disimpan. Download JPG dimulakan. Semak folder Downloads.';
-      }
+      saveButton.textContent = 'Simpan Gambar';
+      await saveImage();
     } catch(error) {status.textContent=error.message+' Cuba semula; borang anda dikekalkan.';}
     finally {busy=false;button.disabled=false;}
   };
