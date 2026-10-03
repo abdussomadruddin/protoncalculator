@@ -27,6 +27,22 @@ const { chromium } = require('playwright');
     await page.screenshot({path:'/tmp/car-loan-poster-phone.png'});
     await page.setViewportSize({width:1280,height:900});
     await page.screenshot({path:'/tmp/car-loan-poster-desktop.png'});
+    const phone = await browser.newContext({userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)',viewport:{width:390,height:844}});
+    await phone.addInitScript(() => {
+      navigator.canShare = () => true;
+      navigator.share = async data => { window.sharedName = data.files[0].name; };
+    });
+    const mobile = await phone.newPage();
+    await mobile.route('**/api/app*',route=>route.fulfill({json:route.request().url().includes('download-request')?{saved:true}:{ready:false}}));
+    await mobile.goto('http://localhost:4193');
+    if(await mobile.locator('#appDialog').isVisible()) await mobile.locator('#dialogClose').click();
+    await mobile.locator('#downloadImageButton').click();
+    await mobile.getByLabel('Nama',{exact:true}).fill('Test');
+    await mobile.getByLabel('No WhatsApp',{exact:true}).fill('0123456789');
+    await mobile.getByRole('button',{name:'Simpan & Download'}).click();
+    await mobile.getByRole('button',{name:'Simpan Gambar',exact:true}).click();
+    assert.equal(await mobile.evaluate(()=>window.sharedName),'car-loan-my.jpg');
+    await phone.close();
     console.log('PASS poster: 1–9 terms, PNG dimensions, failure retains form, successful save triggers PNG download; mocked backend.');
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
