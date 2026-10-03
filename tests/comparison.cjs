@@ -9,6 +9,10 @@ const root = path.resolve(__dirname,'..');
   try {
     const context = await browser.newContext({viewport:{width:390,height:844},userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'});
     await context.addInitScript(() => {
+      window.posterTextCalls=[];window.posterImageCalls=0;
+      const originalText=CanvasRenderingContext2D.prototype.fillText,originalImage=CanvasRenderingContext2D.prototype.drawImage;
+      CanvasRenderingContext2D.prototype.fillText=function(value,x,y,...args){window.posterTextCalls.push({value:String(value),x,y,align:this.textAlign});return originalText.call(this,value,x,y,...args);};
+      CanvasRenderingContext2D.prototype.drawImage=function(...args){window.posterImageCalls++;return originalImage.apply(this,args);};
       if(!localStorage.getItem('car-loan-my-poster-contact')) localStorage.setItem('car-loan-my-poster-contact',JSON.stringify({name:'Legacy Agent',phone:'+60123456789'}));
       navigator.canShare = () => true;
       navigator.share = async data => { window.shareCalls = (window.shareCalls || 0)+1; window.sharedFile = data.files[0].name; window.sharedBlob = data.files[0]; if(window.shareCalls === 1) throw new DOMException('New tap required','NotAllowedError'); if(window.cancelShare) throw new DOMException('Cancelled','AbortError'); };
@@ -56,6 +60,8 @@ const root = path.resolve(__dirname,'..');
     const poster = page.locator('.poster-dialog');
     await page.waitForFunction(()=>!document.querySelector('.poster-dialog button[type=submit]').disabled);
     assert.equal(await poster.getByLabel('Nama',{exact:true}).inputValue(),'Legacy Agent');
+    assert.equal(await page.evaluate(()=>window.posterImageCalls),0,'Poster must not draw app/company icons');
+    assert.ok(await page.evaluate(()=>window.posterTextCalls.some(text=>text.value==='https://carloanmalaysia.vercel.app' && text.x===1040 && text.y===50 && text.align==='right')),'Website at top right');
     const pixels = await poster.locator('canvas').evaluate(canvas => {const ctx=canvas.getContext('2d');return Array.from(ctx.getImageData(900,1140,120,120).data);});
     const qr = jsQR(new Uint8ClampedArray(pixels),120,120); assert.equal(qr.data,'https://wa.me/60123456789');
     await poster.locator('canvas').screenshot({path:'/tmp/car-loan-comparison-poster.png'});
@@ -90,16 +96,14 @@ const root = path.resolve(__dirname,'..');
     const profile=page.locator('.profile-dialog');
     await profile.getByLabel('Nama',{exact:true}).fill('Saved Profile');
     await profile.getByLabel('No WhatsApp',{exact:true}).fill('60123456789');
-    await profile.locator('[type=file]').setInputFiles({name:'large.png',mimeType:'image/png',buffer:Buffer.alloc(2*1024*1024+1)});
-    await profile.getByText('Pilih PNG/JPG maksimum 2 MB.').waitFor();
-    await profile.locator('[type=file]').setInputFiles({name:'logo.png',mimeType:'image/png',buffer:fs.readFileSync(path.join(root,'icon-192.png'))});
-    await profile.locator('.company-preview').waitFor();
+    assert.equal(await profile.locator('[type=file]').count(),0);
+    assert.equal(await profile.getByText(/Logo syarikat/).count(),0);
     await profile.getByRole('button',{name:'Simpan profil',exact:true}).click();
     await profile.waitFor({state:'hidden'});
     await page.reload(); if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
     await page.evaluate(()=>window.agentProfile.open());
     assert.equal(await profile.getByLabel('Nama',{exact:true}).inputValue(),'Saved Profile');
-    assert.equal(await profile.locator('.company-preview').isVisible(),true);
+    assert.equal(await profile.locator('.company-preview').count(),0);
     await profile.getByRole('button',{name:'Tutup',exact:true}).click();
     await page.evaluate(()=>{Storage.prototype.setItem=()=>{throw new Error('Blocked storage');};});
     await page.evaluate(()=>window.agentProfile.open());
@@ -111,7 +115,7 @@ const root = path.resolve(__dirname,'..');
     for(const width of [320,390,768,1280]) {await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.querySelector('.comparison-dialog').scrollWidth<=document.querySelector('.comparison-dialog').clientWidth));}
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/car-loan-comparison-phone.png'});
     assert.deepEqual(errors,[]); await context.close();
-    console.log('PASS comparison/profile: independent brands, terms 1–9, downpayment/insurance/NCD, battery, invalid rebate, QR decoded, legacy profile, logo reload, DB failure/retry, share activation retry and cancellation, responsive layouts. Phone sharing is mocked, not physical-device verification.');
+    console.log('PASS comparison/profile: independent brands, terms 1–9, downpayment/insurance/NCD, battery, invalid rebate, QR decoded, legacy profile, profile reload without company logo, DB failure/retry, share activation retry and cancellation, responsive layouts. Phone sharing is mocked, not physical-device verification.');
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
 function calculateMonthly(principal,rate,years){return principal*(1+rate/100*years)/(years*12);}

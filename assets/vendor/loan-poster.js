@@ -78,11 +78,6 @@
     while (ctx.measureText(String(value)).width > max && size > 14) ctx.font = `600 ${--size}px Arial`;
     ctx.fillText(String(value), x, y, max);
   }
-  let logo;
-  function fitLogo(image,x,y,width,height) {
-    const scale = Math.min(width/image.width,height/image.height),w=image.width*scale,h=image.height*scale;
-    ctx.drawImage(image,x+(width-w)/2,y+(height-h)/2,w,h);
-  }
   function panel(x, y, width, height) {
     ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#061b3430'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 8;
     ctx.beginPath(); ctx.roundRect(x,y,width,height,18); ctx.fill(); ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
@@ -96,11 +91,11 @@
     for(let i=0;i<5;i++) {ctx.beginPath();ctx.moveTo(0,1100+i*45);ctx.lineTo(1080,430+i*45);ctx.lineTo(1080,450+i*45);ctx.lineTo(0,1120+i*45);ctx.fill();}
     ctx.fillStyle = '#dde1e5';
     for(let x=10;x<210;x+=16) for(let y=10;y<210;y+=16){ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();}
-    text('KIRAAN LOAN KENDERAAN',40,50,24,'#101820',760);
+    text('KIRAAN LOAN KENDERAAN',40,50,24,'#101820',430);
+    ctx.textAlign='right';text('https://carloanmalaysia.vercel.app',1040,50,24,'#087f68',550);ctx.textAlign='left';
     ctx.fillStyle='#e00028';ctx.fillRect(40,66,75,4);
     text(dual ? 'BANDING KERETA' : v.brand+' '+v.model,40,137,52,'#071b43',850);
     text(dual ? 'Tetapan loan berasingan' : v.variant,40,180,28,'#627086',920);
-    if(logo) ctx.drawImage(logo,950,27,90,90);
     cars.forEach((v,i)=>{
       const years = v.loanPeriod;
       const x=dual ? 36+i*516 : 36, w=dual ? 492 : 1008;
@@ -132,12 +127,10 @@
       if(v.batteryMonthly) text('Bateri berasingan: '+money(v.batteryMonthly)+'/bln',x+28,1080,dual ? 19 : 25,'#627086',w-56);
     });
     panel(36,1140,1008,119);
-    if(logo)ctx.drawImage(logo,58,1161,76,76);
-    text(form.elements.name.value.trim() || 'CAR LOAN MY',160,1190,30,'#071b43',350);
-    text('Kiraan loan kenderaan',160,1227,20,'#627086',430);
+    text(form.elements.name.value.trim() || 'CAR LOAN MY',58,1190,30,'#071b43',450);
+    text('Kiraan loan kenderaan',58,1227,20,'#627086',450);
     text(form.elements.phone.value.trim() || 'WhatsApp',550,1190,31,'#087f68',310);
     text('Hubungi untuk maklumat lanjut',550,1227,19,'#627086',310);
-    if(companyLogo) fitLogo(companyLogo,790,1210,70,35);
     const phone = window.agentProfile.normalize(form.elements.phone.value);
     if (phone) {
       const qr = qrcode(0,'M'); qr.addData('https://wa.me/'+phone.slice(1)); qr.make();
@@ -150,7 +143,6 @@
   }
   form.elements.name.addEventListener('input',drawPoster);
   form.elements.phone.addEventListener('input',drawPoster);
-  let companyLogo;
   const snapshotFields = ['brand','model','variant','loanPeriod','inputPrice','rebate','extras','insurance','insuranceOption','depositOption','depositAmount','loanAfterDeposit','interestRate','ncd','baseMonthly','selectedMonthly','batteryMonthly'];
   async function open(cars) {
     if(cars.some(v => v.errors?.length)) { alert(cars.flatMap(v => v.errors).join('\n')); return; }
@@ -159,10 +151,6 @@
     clearSaved();
     form.reset(); status.textContent = ''; deviceWarning = '';
     loadContact();
-    await window.agentProfile.ready;
-    companyLogo = null;
-    if(window.agentProfile.getLogo()) { const image = new Image(); image.src = window.agentProfile.getLogo(); try { await image.decode(); companyLogo = image; } catch {} }
-    if(!logo){const asset=new Image();asset.src='/icon-192.png';try{await asset.decode();logo=asset;}catch{}}
     drawPoster();
     dialog.showModal();
     generation++; await generate(generation);
