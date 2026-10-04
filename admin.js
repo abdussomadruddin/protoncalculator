@@ -81,6 +81,7 @@
     $('#loginSection').hidden = true; if($('#adminDashboard').hidden)$('#adminDashboard').hidden = false; $('#logoutButton').hidden = false;
     $('#adminIdentity').textContent = data.email;
     $('#publishButton').disabled = !data.pushReady; $('#publishButton').dataset.unavailable = String(!data.pushReady);
+    $('#activePushSubscriptions').textContent = data.activeSubscriptions ?? 0;
     const signature=JSON.stringify([data.announcements,data.pushReady,pendingBroadcast]);
     if(signature!==announcementSignature){announcementSignature=signature;
     const list = $('#announcementList'); list.replaceChildren();
@@ -91,12 +92,22 @@
       const heading = document.createElement('h4'); heading.textContent = a.title;
       const text = document.createElement('p'); text.textContent = a.message;
       const date = document.createElement('small'); date.textContent = new Date(a.created_at).toLocaleString('ms-MY', { timeZone: 'Asia/Kuala_Lumpur' });
+      const delivery = a.delivery || { sent: 0, failed: 0, processing: 0, total: 0 };
+      const metrics = document.createElement('dl'); metrics.className = 'push-delivery-metrics';
+      for (const [key, label, iconName] of [['sent','Diterima provider','check-circle-2'],['failed','Gagal','circle-alert'],['processing','Sedang diproses','clock-3']]) {
+        const cell = document.createElement('div'); cell.className = 'push-metric-' + key;
+        const labelNode = document.createElement('dt'); const icon = document.createElement('i'); icon.dataset.lucide = iconName; labelNode.append(icon, document.createTextNode(label));
+        const value = document.createElement('dd'); value.textContent = delivery[key]; cell.append(labelNode, value); metrics.append(cell);
+      }
+      const deliveryTime = document.createElement('small'); deliveryTime.className = 'push-delivery-time';
+      deliveryTime.textContent = 'Peranti dalam rekod penghantaran: ' + delivery.total + '. ' + (delivery.lastUpdated ? 'Kemaskini terakhir: ' + new Date(delivery.lastUpdated).toLocaleString('ms-MY', {timeZone:'Asia/Kuala_Lumpur'}) : 'Belum ada penghantaran.');
+      const note = document.createElement('p'); note.className = 'push-delivery-note'; note.textContent = 'Diterima provider bukan pengesahan notification dipaparkan atau dibaca pada telefon.';
       const controls = document.createElement('div'); controls.className = 'announcement-controls';
       function button(label, iconName, handler) { const b = document.createElement('button'); b.type = 'button'; b.className = 'secondary-action'; const icon = document.createElement('i'); icon.dataset.lucide = iconName; b.append(icon, document.createTextNode(label)); b.onclick = handler; controls.append(b); return b; }
       button('Preview', 'eye', () => preview(a.title, a.message, a.link_url, a.link_label));
       if (a.active) {
         button('Tutup popup', 'eye-off', () => task(async () => { await api('deactivate', { id: a.id }); await load(); status('Popup hebahan telah dinyahaktifkan.'); }));
-        const send = button(pendingBroadcast === a.id ? 'Sambung push' : 'Status / sambung push', 'send', () => {
+        const send = button('Sambung push', 'send', () => {
           preview('Sambung notification?', a.title + '\n\nSambung ke peranti yang belum diproses. Peranti yang sudah diterima provider tidak dihantar semula.', null);
           $('#confirmSend').hidden = false;
           $('#confirmSend').onclick = () => { $('#adminDialog').close(); task(async () => {
@@ -105,7 +116,7 @@
         });
         send.disabled = !data.pushReady; send.dataset.unavailable = String(!data.pushReady);
       }
-      row.append(badge, heading, text, date, controls); list.append(row);
+      row.append(badge, heading, text, date, metrics, deliveryTime, note, controls); list.append(row);
     }
     icons();
     }

@@ -10,6 +10,24 @@ async function request(action, { method = 'GET', body, cookie, id, origin = 'htt
   const res = { headers: {}, code: null, data: null, setHeader(key, value) { this.headers[key] = value; }, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; }, end(data) { this.data = data; } };
   await handler(req, res); return res;
 }
+test('admin delivery status is read-only, private and includes inactive announcements', async () => {
+  const calls = [];
+  const id = '11111111-1111-4111-8111-111111111111';
+  global.fetch = async (url, options) => {
+    calls.push({url, method:options.method});
+    if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-10-01'}));
+    if (url.includes('/car_announcements?')) return new Response(JSON.stringify([{id,active:false}]));
+    if (url.includes('/car_push_subscriptions?')) return new Response(JSON.stringify([{id:'one'},{id:'two'}]));
+    if (url.includes('/car_push_deliveries?')) return new Response(JSON.stringify(['sent','failed','processing'].map((state,i)=>({announcement_id:id,state,updated_at:`2026-10-04T08:00:0${i}Z`}))));
+    throw new Error('Unexpected write or query');
+  };
+  assert.equal((await request('admin')).code,401);
+  const res = await request('admin',{cookie:'__Host-carloan-admin=token'});
+  assert.equal(res.code,200);
+  assert.equal(res.data.activeSubscriptions,2);
+  assert.deepEqual(res.data.announcements[0].delivery,{sent:1,failed:1,processing:1,total:3,lastUpdated:'2026-10-04T08:00:02Z'});
+  assert.ok(calls.every(call=>call.method==='GET'));
+});
 test('public config cannot expose private credentials', async () => {
   const res = await request('config'); assert.equal(res.code, 200); assert.ok(res.data.ready);
   assert.ok(!JSON.stringify(res.data).includes('private-service-key'));

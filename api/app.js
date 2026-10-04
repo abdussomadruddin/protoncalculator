@@ -299,7 +299,27 @@ module.exports = async function handler(req, res) {
     }
     if (action === 'admin' && req.method === 'GET') {
       const { data } = await supabase('/rest/v1/car_announcements?select=*&order=created_at.desc&limit=40');
-      return res.status(200).json({ email: user.email, announcements: data, pushReady: pushReady() });
+      let activeSubscriptions = 0;
+      for (let offset = 0; ; offset += 500) {
+        const { data: rows } = await supabase('/rest/v1/car_push_subscriptions?enabled=eq.true&select=id&order=id.asc&limit=500&offset=' + offset);
+        activeSubscriptions += rows.length;
+        if (rows.length < 500) break;
+      }
+      const summaries = new Map(data.map(a => [a.id, { sent: 0, failed: 0, processing: 0, total: 0, lastUpdated: null }]));
+      if (data.length) {
+        for (let offset = 0; ; offset += 500) {
+          const { data: rows } = await supabase('/rest/v1/car_push_deliveries?announcement_id=in.(' + data.map(a => a.id).join(',') + ')&select=announcement_id,state,updated_at,subscription_id&order=announcement_id.asc,subscription_id.asc&limit=500&offset=' + offset);
+          for (const row of rows) {
+            const summary = summaries.get(row.announcement_id);
+            if (!summary) continue;
+            summary.total++;
+            if (['sent', 'failed', 'processing'].includes(row.state)) summary[row.state]++;
+            if (!summary.lastUpdated || Date.parse(row.updated_at) > Date.parse(summary.lastUpdated)) summary.lastUpdated = row.updated_at;
+          }
+          if (rows.length < 500) break;
+        }
+      }
+      return res.status(200).json({ email: user.email, announcements: data.map(a => ({ ...a, delivery: summaries.get(a.id) })), activeSubscriptions, pushReady: pushReady() });
     }
     if (action === 'publish') {
       requirePost(req);

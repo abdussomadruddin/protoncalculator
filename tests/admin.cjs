@@ -41,7 +41,7 @@ const root = path.resolve(__dirname, '..');
       if (action === 'admin') {
         sessionRequested = true;
         await sessionGate;
-        return loggedIn ? respond({ email: 'admin@example.test', pushReady: true, announcements: published ? [published] : [] }) : respond({ error: 'Login required' }, 401);
+        return loggedIn ? respond({ email: 'admin@example.test', pushReady: true, activeSubscriptions:47, announcements: published ? [{...published,delivery:{sent:45,failed:1,processing:1,total:47,lastUpdated:'2026-10-04T08:45:00Z'}}] : [] }) : respond({ error: 'Login required' }, 401);
       }
       if (action === 'publish') {
         publishCalls++;
@@ -135,6 +135,12 @@ const root = path.resolve(__dirname, '..');
     await page.locator('#announcementMessage').fill('Mock recipients, never production.');
     await page.locator('#publishButton').click();
     await page.waitForFunction(() => document.querySelector('#adminStatus').textContent.includes('push selesai'));
+    assert.equal(await page.locator('#activePushSubscriptions').innerText(),'47');
+    assert.equal(await page.locator('.push-metric-sent dd').innerText(),'45');
+    assert.equal(await page.locator('.push-metric-failed dd').innerText(),'1');
+    assert.equal(await page.locator('.push-metric-processing dd').innerText(),'1');
+    assert.ok((await page.locator('.push-delivery-note').innerText()).includes('bukan pengesahan'));
+    await page.screenshot({path:'/tmp/carloan-push-status-phone.png',fullPage:true});
     assert.equal(publishCalls, 1);
     assert.equal(broadcastCalls, 2);
     assert.equal(await page.evaluate(() => localStorage.getItem('car-loan-admin-pending-push')), null);

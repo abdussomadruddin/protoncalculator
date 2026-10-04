@@ -43,6 +43,18 @@ h3{font-size:16px;margin:0 0 18px}
 .admin-form-actions button{display:flex;align-items:center;gap:8px;justify-content:center;flex:1}
 .announcement-row{padding:18px 0;border-bottom:1px solid var(--line)}
 .announcement-row:first-child{padding-top:0}
+.push-subscription-summary{display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 16px;color:var(--muted)}
+.push-subscription-summary svg{width:18px;height:18px;color:#087f6b}
+.push-subscription-summary strong{margin-left:auto;font-size:22px;color:var(--ink)}
+.push-delivery-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 8px}
+.push-delivery-metrics div{min-width:0;border-left:3px solid #148f75;padding:3px 7px}
+.push-delivery-metrics .push-metric-failed{border-color:#db3154}
+.push-delivery-metrics .push-metric-processing{border-color:#d89c18}
+.push-delivery-metrics dt{font-size:11px;line-height:1.4;display:flex;align-items:flex-start;gap:4px;overflow-wrap:anywhere}
+.push-delivery-metrics svg{width:14px;height:14px;flex:none}
+.push-delivery-metrics dd{margin:5px 0 0;font-size:22px;font-weight:700}
+.push-delivery-time{display:block;line-height:1.5}
+.announcement-row .push-delivery-note{font-size:11px;line-height:1.5;color:var(--muted);margin:7px 0}
 .announcement-row h4{font-size:16px;line-height:1.5;margin:10px 0;overflow-wrap:anywhere}
 .announcement-row p{font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .announcement-row small{font-size:12px;color:var(--muted)}
