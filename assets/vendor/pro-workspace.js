@@ -49,7 +49,8 @@
   function badges(){for(const button of tabButtons){const badge=button.querySelector('.pro-mark');if(!badge)continue;const count=counts[button.dataset.tab]||0;badge.hidden=!!agent&&count===0;badge.textContent=agent?String(count):'PRO';badge.classList.toggle('pro-count',!!agent);}}
   async function refreshCounts(){if(!agent||!agent.active||countPending)return;countPending=true;try{const next=await api('pro-counts');if(agent){counts=next;badges();}}catch(error){if(error.status===401||error.status===403){live.stop();expired();}}finally{countPending=false;}}
   async function api(action,body,params=''){
-    const response=await fetch('/api/app?action='+action+params,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
+    const request=fetch('/api/app?action='+action+params,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),cache:'no-store'});
+    const response=await (window.CarLoanBoot?.wait(request)||request);
     const data=await response.json();if(!response.ok){const error=new Error(data.error||data.message||'Sambungan gagal. Cuba lagi.');error.status=response.status;throw error;}return data;
   }
   const message=(text,cls='pro-subtle')=>pane.append(el('p',cls,text));
@@ -60,7 +61,7 @@
   }
   async function linkDevice(){try{const registration=await navigator.serviceWorker?.getRegistration();const sub=await registration?.pushManager.getSubscription();const token=localStorage.getItem('carloan-device-token');if(sub&&token)await api('pro-device',{subscription:sub.toJSON(),deviceToken:token});}catch(e){if(current==='appointment')message('Reminder belum disambungkan: '+e.message,'pro-error');}}
   let sessionPending=null;
-  function restoreSession(){if(!sessionPending)sessionPending=api('pro-session').then(result=>{agent=result;badges();refreshCounts();if(agent.active)live.start();return result;}).finally(()=>{sessionPending=null;});return sessionPending;}
+  function restoreSession(){if(!sessionPending){const request=api('pro-session').then(async result=>{agent=result;badges();if(agent.active){live.start();await refreshCounts();const initial=await Promise.all([api('pro-cases'),api('pro-appointments')]).catch(()=>null);if(initial){records=initial[0].records;appointments=initial[1].records;}}return result;}).finally(()=>{sessionPending=null;});sessionPending=window.CarLoanBoot?.wait(request)||request;}return sessionPending;}
   async function select(id){revealTabs();if(!tabs.some(t=>t[0]===id))id='calculator';current=id;positionLens(id);const version=++generation;nav.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));workspace.hidden=id!=='calculator';pane.hidden=id==='calculator';
     redrawLive=null;if(id==='calculator'){icons();return;}
     if(agent&&id!=='comparison'&&agent.active)render();

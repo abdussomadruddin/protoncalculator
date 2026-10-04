@@ -46,3 +46,5 @@
 !assets/vendor/pro-workspace.css
 !assets/vendor/supabase-realtime.js
 !assets/vendor/pro-live.js
+!assets/vendor/app-boot.js
+!assets/vendor/app-boot.css

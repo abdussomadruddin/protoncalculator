@@ -51,7 +51,8 @@ async function mockInstalled(page, permission, existing = true, installed = true
   const contexts = [];
   async function pageFor(userAgent, width = 390) {
     const context = await browser.newContext({ viewport: { width, height: 844 }, ...(userAgent ? { userAgent } : {}) }); contexts.push(context);
-    const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message)); return page;
+    const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
+    const goto=page.goto.bind(page);page.goto=async(...args)=>{const response=await goto(...args);await page.waitForFunction(()=>!window.CarLoanBoot||window.CarLoanBoot.ready);return response;};return page;
   }
   try {
     const desktop = await pageFor(null, 1280); await desktop.clock.install(); await desktop.goto(base);

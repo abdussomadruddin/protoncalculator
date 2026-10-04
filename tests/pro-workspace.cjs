@@ -25,7 +25,7 @@ const root=path.resolve(__dirname,'..');
       }
       const file=path.join(root,url.pathname==='/'?'index.html':url.pathname.slice(1));return route.fulfill({body:fs.readFileSync(file),contentType:{'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'}[path.extname(file)]||'text/plain'});
     });
-    await page.goto('https://pro.test/');if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
+    await page.goto('https://pro.test/');await page.waitForFunction(()=>window.CarLoanBoot.ready);if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
     assert.equal(await page.locator('.workspace').isVisible(),true);assert.equal(await page.locator('.pro-pane').isVisible(),false);assert.ok(!requests.includes('pro-cases'),'home never requires private data');
     assert.equal(await page.locator('.pro-mark').count(),4);assert.equal(await page.locator('.pro-tabs button').count(),5);
     await page.locator('#appMenuButton').click();await page.getByRole('button',{name:'Profil Ejen',exact:true}).click();await page.getByRole('heading',{name:'Daftar ejen',exact:true}).waitFor();assert.equal(await page.locator('.pro-auth input').count(),4);assert.equal(await page.locator('.pro-auth input[name=email]').count(),1);assert.equal(await page.locator('.pro-auth input[name=password]').count(),1);await page.getByRole('tab',{name:'Calculator',exact:true}).click();
@@ -61,7 +61,7 @@ const root=path.resolve(__dirname,'..');
     await page.evaluate(()=>scrollTo(0,300));await page.waitForFunction(()=>document.querySelector('.pro-tabs').classList.contains('is-scroll-hidden'));assert.equal(await page.locator('.pro-tabs').evaluate(n=>n.inert),true);await page.waitForTimeout(400);const lowered=await page.locator('.actions').boundingBox();assert.ok(Math.abs(lowered.y-raised.y-63)<1,'Action buttons slide into space vacated by tabs');assert.ok(lowered.y+lowered.height<=844,'Actions remain on screen');
     await page.evaluate(()=>scrollTo(0,250));await page.waitForFunction(()=>!document.querySelector('.pro-tabs').classList.contains('is-scroll-hidden'));assert.equal(await page.locator('.pro-tabs').evaluate(n=>n.inert),false);await page.waitForTimeout(400);assert.ok(Math.abs((await page.locator('.actions').boundingBox()).y-raised.y)<1,'Actions return above tabs');
     await page.evaluate(()=>scrollTo(0,0));assert.equal(await page.getByRole('button',{name:'Refresh',exact:true}).count(),0);
-    await page.reload();if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();assert.equal(await page.locator('.workspace').isVisible(),true,'reload defaults to calculator');assert.deepEqual(errors,[]);
+    await page.reload();await page.waitForFunction(()=>window.CarLoanBoot.ready);if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();assert.equal(await page.locator('.workspace').isVisible(),true,'reload defaults to calculator');assert.deepEqual(errors,[]);
     console.log('PASS PRO UI: anonymous calculator default, 5 compact tabs, auth gating, private cases, status list, 3-day follow up, terminal exclusion, safe history, save failure/retry, appointment case link/Malaysia time, comparison and 4 widths.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

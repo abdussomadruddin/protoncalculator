@@ -23,7 +23,7 @@ const sdk=`window.liveClients=[];window.CarLoanRealtime={RealtimeClient:class{co
    if(url.pathname.endsWith('/supabase-realtime.js'))return route.fulfill({body:sdk,contentType:'text/javascript'});
    const file=path.join(root,url.pathname==='/'?'index.html':url.pathname.slice(1));return route.fulfill({body:fs.readFileSync(file),contentType:{'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'}[path.extname(file)]||'text/plain'});
   });
-  await page.goto('https://live.test/');if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
+  await page.goto('https://live.test/');await page.waitForFunction(()=>window.CarLoanBoot.ready);if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();
   await page.waitForFunction(()=>liveClients.some(c=>c.token==='owner-token'));
   await page.getByRole('tab',{name:/^Case/}).click();await page.locator('.pro-record h3').waitFor();
   records=[{...seed,name:'Updated on another device'}];await page.evaluate(()=>emitLive('car_agent_cases'));await page.getByRole('heading',{name:'Updated on another device',exact:true}).waitFor();

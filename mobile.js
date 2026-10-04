@@ -37,10 +37,11 @@
   }
   const icons = () => window.lucide?.createIcons();
   const api = async (actionName, body, id) => {
-    const response = await fetch('/api/app?action=' + actionName + (id && id !== 'latest' ? '&id=' + encodeURIComponent(id) : ''), {
+    const request = fetch('/api/app?action=' + actionName + (id && id !== 'latest' ? '&id=' + encodeURIComponent(id) : ''), {
       method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' },
       ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store', signal: AbortSignal.timeout(12000),
     });
+    const response = await (window.CarLoanBoot?.wait(request) || request);
     const data = await response.json().catch(() => ({}));
     if (!response.ok) { const error = new Error(data.error || 'Sambungan terganggu. Cuba lagi.'); error.status = response.status; throw error; }
     return data;
@@ -290,6 +291,7 @@
   icons();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     swReady = navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready);
+    if(window.CarLoanBoot)swReady=window.CarLoanBoot.wait(swReady);
     swReady.catch(() => { swReady = null; });
   }
   notificationAttempted = storage.get('carloan-notification-attempted') === '1';
@@ -305,7 +307,7 @@
       subscribe(true).catch(() => notice('Langganan notification belum disegerakkan. Cuba semula dalam Tetapan app.'));
     }
   } else if (standalone()) {
-    notificationConfig().then(async config => {
+    const startupNotification=notificationConfig().then(async config => {
       if (announcementLoading || displayedAnnouncement) return;
       if (!config.pushReady) { notificationUnavailable('Sambungan notification di server belum diaktifkan oleh admin. Ini bukan masalah tetapan telefon anda. Kalkulator masih boleh digunakan.'); return; }
       if (!('Notification' in window) || Notification.permission !== 'granted') {
@@ -313,6 +315,7 @@
         else notice('Notification belum aktif. Tekan Tetapan app untuk mencuba semula.');
       } else if (!await subscribe(true) && !announcementLoading && !displayedAnnouncement) notificationGate();
     }).catch(() => notice('Sambungan server notification terganggu. Kalkulator masih boleh digunakan.'));
+    window.CarLoanBoot?.wait(startupNotification);
   } else {
     installGuide();
     if ('Notification' in window && Notification.permission === 'granted' && swReady && 'PushManager' in window) {

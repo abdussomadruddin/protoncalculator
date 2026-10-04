@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/serve.cjs",
-    "test": "node tests/catalog.cjs && node tests/calculator.cjs && node tests/mobile.cjs && node tests/sw.cjs && node tests/admin.cjs && node --test tests/api.cjs tests/pro-api.cjs && node tests/schema.cjs && node tests/pro-schema.cjs && node tests/activity.cjs && node tests/downloads.cjs && node tests/comparison.cjs && node tests/pro-workspace.cjs && node tests/realtime.cjs"
+    "test": "node tests/catalog.cjs && node tests/calculator.cjs && node tests/mobile.cjs && node tests/sw.cjs && node tests/admin.cjs && node --test tests/api.cjs tests/pro-api.cjs && node tests/schema.cjs && node tests/pro-schema.cjs && node tests/activity.cjs && node tests/downloads.cjs && node tests/comparison.cjs && node tests/pro-workspace.cjs && node tests/realtime.cjs && node tests/boot.cjs"
   },
   "dependencies": {
     "@supabase/realtime-js": "2.117.2",
