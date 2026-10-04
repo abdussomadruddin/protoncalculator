@@ -98,7 +98,7 @@
   function dialog(title){const d=el('dialog','app-dialog pro-editor'),top=el('div','dialog-top');top.append(el('h2','',title),button('Tutup',()=>d.close()));d.append(top);document.body.append(d);d.addEventListener('close',()=>d.remove());return d;}
   function hideRecord(record,appointment){
     const d=dialog('Padam '+(appointment?'Appointment':'Case')),info=el('p','',record.name+' · '+record.phone),status=el('p','pro-error');
-    d.append(info,el('p','','Rekod akan hilang daripada paparan ejen. Rekod asal kekal dalam database admin.'),status);
+    d.append(info,status);
     let step=0,busy=false;const confirm=button('Teruskan',async()=>{
       if(busy)return;if(step===0){step=1;status.textContent='Pengesahan kedua: pasti mahu padamkan rekod ini?';confirm.textContent='Ya, padam dari paparan';return;}
       busy=true;confirm.disabled=true;

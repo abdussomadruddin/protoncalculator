@@ -65,7 +65,7 @@ const root=path.resolve(__dirname,'..');
     await page.waitForTimeout(350);await page.getByRole('tab',{name:/^Case/}).click();await page.locator('.pro-record').first().waitFor();
     await page.locator('.pro-record').first().getByRole('button',{name:'Padam',exact:true}).click();
     const deletion=page.locator('.pro-editor');const beforeDelete=writes.length;
-    await deletion.getByText('Rekod akan hilang daripada paparan ejen. Rekod asal kekal dalam database admin.',{exact:true}).waitFor();
+    assert.equal(await deletion.getByText('Rekod akan hilang daripada paparan ejen. Rekod asal kekal dalam database admin.',{exact:true}).count(),0);
     await deletion.getByRole('button',{name:'Teruskan',exact:true}).click();assert.equal(writes.length,beforeDelete);
     await deletion.getByText('Pengesahan kedua: pasti mahu padamkan rekod ini?',{exact:true}).waitFor();
     await deletion.getByRole('button',{name:'Tutup',exact:true}).click();assert.equal(await page.locator('.pro-record').count(),5);
