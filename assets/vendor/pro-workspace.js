@@ -82,7 +82,7 @@
     redrawLive=()=>{if(list.isConnected)draw();};
     function draw(){list.replaceChildren();const rows=(current==='appointment'?appointments:records).filter(r=>(current!=='followup'||due(r))&&(filter.value==='Semua'||r.status===filter.value)&&(r.name+' '+r.phone).toLowerCase().includes(search.value.toLowerCase()));if(!rows.length){list.append(el('p','pro-empty','Tiada rekod.'));return;}for(const r of rows){const card=el('article','pro-record');card.append(el('h3','',r.name),el('p','',r.phone),el('span','pro-status'+(terminal.has(r.status)||r.status==='Completed'?' terminal':''),r.status));if(current==='appointment'){card.append(el('p','',r.type+' · '+date(r.starts_at)),el('p','',r.location),el('p','',r.notes));}else{card.append(el('p','',[r.brand,r.model,r.variant].join(' ')),el('p','',r.color),el('p','',r.remark),el('p','pro-subtle','Aktiviti terakhir · '+date(r.activity_at)));}
       if(current!=='appointment'){card.querySelector('.pro-status').remove();card.append(quickCase(r,draw));}
-      const actions=el('div','pro-toolbar');for(const [label,url,icon]of[['WhatsApp','https://wa.me/'+r.phone.slice(1),'message-circle'],['Call','tel:'+r.phone,'phone']]){const a=el('a');a.href=url;a.innerHTML=`<i data-lucide="${icon}"></i>`;a.append(document.createTextNode(label));if(label==='WhatsApp'){a.target='_blank';a.rel='noopener noreferrer';}actions.append(a);}actions.append(button('Edit',()=>edit(r,current==='appointment')));if(current!=='appointment')actions.append(button('Sejarah',()=>history(r)));const remove=button("Padam",()=>hideRecord(r,current==="appointment"));remove.innerHTML="<i data-lucide=\"trash-2\"></i>Padam";remove.title="Padam dari paparan ejen";actions.append(remove);card.append(actions);list.append(card);}icons();}search.oninput=draw;filter.onchange=draw;draw();if((current==='appointment'?appointments:records).length===1000)message('Memaparkan 1,000 rekod terkini sahaja.','pro-error');icons();
+      const actions=el('div','pro-toolbar');for(const [label,url,icon]of[['WhatsApp','https://wa.me/'+r.phone.slice(1),'message-circle'],['Call','tel:'+r.phone,'phone']]){const a=el('a');a.href=url;a.innerHTML=`<i data-lucide="${icon}"></i>`;a.append(document.createTextNode(label));if(label==='WhatsApp'){a.target='_blank';a.rel='noopener noreferrer';}actions.append(a);}actions.append(button('Edit',()=>edit(r,current==='appointment')));if(current!=='appointment')actions.append(button('Sejarah',()=>history(r)));card.append(actions);list.append(card);}icons();}search.oninput=draw;filter.onchange=draw;draw();if((current==='appointment'?appointments:records).length===1000)message('Memaparkan 1,000 rekod terkini sahaja.','pro-error');icons();
   }
   function quickCase(record,redraw){
     const form=el('form','pro-quick-case'),label=el('label','','Status'),select=el('select'),remark=el('textarea'),feedback=el('p','pro-subtle'),save=el('button','primary-action','Simpan');
@@ -96,13 +96,13 @@
     select.onchange=()=>persist(true);form.onsubmit=event=>{event.preventDefault();persist(false);};return form;
   }
   function dialog(title){const d=el('dialog','app-dialog pro-editor'),top=el('div','dialog-top');top.append(el('h2','',title),button('Tutup',()=>d.close()));d.append(top);document.body.append(d);d.addEventListener('close',()=>d.remove());return d;}
-  function hideRecord(record,appointment){
+  function hideRecord(record,appointment,onDeleted){
     const d=dialog('Padam '+(appointment?'Appointment':'Case')),info=el('p','',record.name+' · '+record.phone),status=el('p','pro-error');
     d.append(info,status);
     let step=0,busy=false;const confirm=button('Teruskan',async()=>{
       if(busy)return;if(step===0){step=1;status.textContent='Pengesahan kedua: pasti mahu padamkan rekod ini?';confirm.textContent='Ya, padam dari paparan';return;}
       busy=true;confirm.disabled=true;
-      try{await api(appointment?'pro-appointment-delete':'pro-case-delete',{id:record.id,confirm:true,confirmAgain:true});d.close();if(appointment)appointments=appointments.filter(r=>r.id!==record.id);else records=records.filter(r=>r.id!==record.id);render();await refreshCounts();}
+      try{await api(appointment?'pro-appointment-delete':'pro-case-delete',{id:record.id,confirm:true,confirmAgain:true});d.close();onDeleted?.();if(appointment)appointments=appointments.filter(r=>r.id!==record.id);else records=records.filter(r=>r.id!==record.id);render();await refreshCounts();}
       catch(error){status.textContent=error.message;}finally{busy=false;confirm.disabled=false;}
     });d.append(confirm);d.showModal();icons();
   }
@@ -113,6 +113,7 @@
     else{const brand=field('brand','Brand','text',Object.keys(CAR_CATALOG)),model=field('model','Model','text',[]),variant=field('variant','Variant','text',[]);const variants=()=>{variant.replaceChildren(...(CAR_CATALOG[brand.value].find(m=>m.name===model.value)?.variants||[]).map(v=>new Option(v.name,v.name)));};const models=()=>{model.replaceChildren(...CAR_CATALOG[brand.value].map(m=>new Option(m.name,m.name)));variants();};models();if([...model.options].some(o=>o.value===defaults.model)){model.value=defaults.model;variants();}if([...variant.options].some(o=>o.value===defaults.variant))variant.value=defaults.variant;brand.onchange=models;model.onchange=variants;field('color','Warna');field('status','Status','text',statuses);field('remark','Remark','textarea');}
     const status=el('p','pro-error'),save=el('button','primary-action','Simpan');save.type='submit';form.append(grid,status,save);d.append(form);const requestID=record?.id||crypto.randomUUID();let busy=false;
     form.onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;save.disabled=true;status.textContent='Menyimpan...';const body={...Object.fromEntries(new FormData(form)),tab:current};body.id=requestID;if(appointment)body.starts_at=body.starts_at?new Date(body.starts_at+':00+08:00').toISOString():'';try{await api(appointment?'pro-appointment-save':'pro-case-save',body);d.close();await select(current);}catch(error){status.textContent=error.message;}finally{busy=false;save.disabled=false;}};
+    if(record){const footer=el('div','pro-toolbar'),remove=button('Padam',()=>{if(!busy)hideRecord(record,appointment,()=>d.close());});remove.innerHTML='<i data-lucide="trash-2"></i>Padam';remove.title='Padam dari paparan ejen';footer.append(remove);d.append(footer);}
     d.showModal();icons();
   }
   async function history(record){
