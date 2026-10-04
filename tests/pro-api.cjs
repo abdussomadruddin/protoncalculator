@@ -84,3 +84,29 @@ test('appointment validates timezone, future time and type; cron rejects missing
   assert.equal((await request('pro-reminders',{body:{},authorization:'Bearer invalid'})).code,401);
   process.env.PRO_REMINDER_SECRET='secret-value';assert.equal((await request('pro-reminders',{body:{},authorization:'Bearer invalid'})).code,401);
 });
+test('soft deletion requires both confirmations, uses owner JWT and is retry-safe',async()=>{
+  let hidden=null,writes=0;
+  global.fetch=async(url,opts)=>{
+    if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify(user));
+    assert.equal(opts.headers.apikey,'public-key');assert.equal(opts.headers.Authorization,'Bearer access-token');
+    assert.notEqual(opts.method,'DELETE');
+    if(opts.method==='PATCH'){writes++;hidden=JSON.parse(opts.body).agent_deleted_at;return new Response('');}
+    return new Response(JSON.stringify([{id,agent_deleted_at:hidden}]));
+  };
+  for(const action of ['pro-case-delete','pro-appointment-delete']){
+    hidden=null;writes=0;
+    assert.equal((await request(action,{body:{id,confirm:true}})).code,400);
+    assert.equal((await request(action,{body:{id,confirm:true,confirmAgain:true}})).code,200);
+    assert.equal((await request(action,{body:{id,confirm:true,confirmAgain:true}})).code,200);assert.equal(writes,1);
+  }
+  const body={id,name:'Customer',phone:'0173559147',brand:'Proton',model:'S70',variant:'Lite',status:'Submission'};
+  assert.equal((await request('pro-case-save',{body})).code,409);
+  global.fetch=async url=>new Response(JSON.stringify(url.endsWith('/auth/v1/user')?user:[]));
+  assert.equal((await request('pro-case-delete',{body:{id,confirm:true,confirmAgain:true}})).code,404);
+});
+test('authenticated profile save synchronizes contact registry and account metadata',async()=>{
+  const calls=[];global.fetch=async(url,opts)=>{calls.push({url,opts});return new Response(JSON.stringify(url.endsWith('/auth/v1/user')?user:url.includes('/rpc/')?true:user));};
+  assert.equal((await request('agent-profile',{body:{id,name:'Updated agent',phone:'0173559147'}})).code,200);
+  const update=calls.find(c=>c.opts.method==='PUT');assert.ok(update.url.endsWith('/'+user.id));assert.equal(JSON.parse(update.opts.body).user_metadata.whatsapp,'+60173559147');
+  assert.equal(JSON.parse(calls.find(c=>c.url.includes('/rpc/')).opts.body).whatsapp,'+60173559147');
+});

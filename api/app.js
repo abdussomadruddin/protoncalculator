@@ -144,6 +144,7 @@ module.exports = async function handler(req, res) {
       if (JSON.stringify(req.body || {}).length > 12000) fail(413, 'Mesej terlalu besar.');
     }
     const body = req.body || {};
+    if(action==='agent-profile'&&(readCookie(req,'__Host-carloan-agent')||readCookie(req,'__Host-carloan-agent-refresh')))return await require('../lib/pro.cjs')({...req,query:{...req.query,action:'pro-profile-save'}},res,{supabase,fail,readCookie,uuid,validateSubscription,pushReady});
     if (typeof action === 'string' && action.startsWith('pro-')) return await require('../lib/pro.cjs')(req,res,{supabase,fail,readCookie,uuid,validateSubscription,pushReady});
     if (action === 'download-request' || action === 'agent-profile') {
       requirePost(req);

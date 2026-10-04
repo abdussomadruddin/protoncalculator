@@ -37,5 +37,7 @@
   };
   window.agentProfile = { read, normalize, save, open: () => {
     const profile = read(); form.reset(); form.elements.name.value = profile.name || ''; form.elements.phone.value = profile.phone || ''; status.textContent = storageWarning; dialog.showModal(); window.lucide?.createIcons();
+    const initial={name:form.elements.name.value,phone:form.elements.phone.value};
+    fetch('/api/app?action=pro-profile').then(async response=>{if(!response.ok)return;const latest=await response.json();if(!dialog.open||form.elements.name.value!==initial.name||form.elements.phone.value!==initial.phone||form.elements.name.disabled)return;if(latest.name&&normalize(latest.phone)){form.elements.name.value=latest.name;form.elements.phone.value=latest.phone;try{localStorage.setItem(key,JSON.stringify({name:latest.name,phone:latest.phone}));}catch{status.textContent='Storan peranti tidak tersedia.';}}}).catch(()=>{});
   } };
 })();

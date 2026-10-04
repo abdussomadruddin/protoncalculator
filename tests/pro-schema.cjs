@@ -33,6 +33,24 @@ const {PGlite}=require('@electric-sql/pglite');
     await as(a);await db.query("update public.car_agent_appointments set starts_at=now()+interval '3 hours 59 minutes' where id=$1",[appt]);await db.exec('reset role');claims=(await db.query('select * from public.car_agent_claim_reminders()')).rows;assert.equal(claims.length,1);assert.equal(claims[0].revision,2);assert.equal(claims[0].offset_hours,4);
     await as(a);await db.query("update public.car_agent_appointments set status='Cancelled' where id=$1",[appt]);await db.exec('reset role');assert.equal((await db.query('select * from public.car_agent_claim_reminders()')).rows.length,0);
     for(const hours of [24,72]){await as(a);await db.query("update public.car_agent_appointments set status='Scheduled', starts_at=now()+make_interval(hours=>$1)-interval '1 minute' where id=$2",[hours,appt]);await db.exec('reset role');claims=(await db.query('select * from public.car_agent_claim_reminders()')).rows;assert.equal(claims.length,1);assert.equal(claims[0].offset_hours,hours);}
+    await db.exec("alter table auth.users add column raw_app_meta_data jsonb default '{}', add column email_confirmed_at timestamptz default now()");
+    await db.exec(fs.readFileSync('backend/pro-followup.sql','utf8'));
+    await db.exec(fs.readFileSync('supabase/migrations/20261004001942_agent_soft_delete.sql','utf8'));
+    const events=(await db.query('select * from public.car_agent_case_events')).rows.length;
+    before=(await db.query('select activity_at from public.car_agent_cases')).rows[0].activity_at;
+    await as(b);assert.equal((await db.query('update public.car_agent_cases set agent_deleted_at=now() where id=$1 returning id',[id])).rows.length,0);
+    await as(a);await db.query('update public.car_agent_cases set agent_deleted_at=now() where id=$1',[id]);
+    await db.query('update public.car_agent_appointments set agent_deleted_at=now() where id=$1',[appt]);
+    assert.equal((await db.query('select * from public.car_agent_cases where agent_deleted_at is null')).rows.length,0);
+    assert.equal((await db.query('select * from public.car_agent_appointments where agent_deleted_at is null')).rows.length,0);
+    await assert.rejects(db.query('update public.car_agent_cases set agent_deleted_at=null where id=$1',[id]));
+    await assert.rejects(db.query('delete from public.car_agent_cases where id=$1',[id]));
+    await db.exec('reset role');
+    assert.equal((await db.query('select * from public.car_agent_cases')).rows.length,1);
+    assert.equal((await db.query('select * from public.car_agent_appointments')).rows.length,1);
+    assert.equal((await db.query('select * from public.car_agent_case_events')).rows.length,events);
+    assert.equal(new Date((await db.query('select activity_at from public.car_agent_cases')).rows[0].activity_at).getTime(),new Date(before).getTime());
+    assert.equal((await db.query('select * from public.car_agent_claim_reminders()')).rows.length,0);
     console.log('PASS PRO SQL: owner isolation, anonymous denial, immutable history, activity timestamps, linked case ownership, reminder offsets, revision and claim deduplication.');
   }finally{await db.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

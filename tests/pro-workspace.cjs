@@ -20,6 +20,7 @@ const root=path.resolve(__dirname,'..');
         if(action==='pro-cases'){await new Promise(resolve=>setTimeout(resolve,200));return route.fulfill({json:{records}});}
         if(action==='pro-appointments')return route.fulfill({json:{records:[]}});
         if(action==='pro-history')return route.fulfill({json:{records:[{created_at:recent,status:'Submission',remark:'<script>window.hacked=true</script>'}]}});
+        if(action==='pro-case-delete'){const body=route.request().postDataJSON();writes.push(body);if(!failSave){const index=records.findIndex(r=>r.id===body.id);if(index>=0)records.splice(index,1);}return route.fulfill({status:failSave?503:200,json:failSave?{error:'Delete failure'}:{deleted:true}});}
         if(action==='pro-case-save'||action==='pro-appointment-save'){writes.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,150));return route.fulfill({status:failSave?503:200,json:failSave?{error:'Test save failure'}:{saved:true}});}
         return route.fulfill({json:{announcement:null}});
       }
@@ -61,6 +62,14 @@ const root=path.resolve(__dirname,'..');
     await page.evaluate(()=>scrollTo(0,300));await page.waitForFunction(()=>document.querySelector('.pro-tabs').classList.contains('is-scroll-hidden'));assert.equal(await page.locator('.pro-tabs').evaluate(n=>n.inert),true);await page.waitForTimeout(400);const lowered=await page.locator('.actions').boundingBox();assert.ok(Math.abs(lowered.y-raised.y-63)<1,'Action buttons slide into space vacated by tabs');assert.ok(lowered.y+lowered.height<=844,'Actions remain on screen');
     await page.evaluate(()=>scrollTo(0,250));await page.waitForFunction(()=>!document.querySelector('.pro-tabs').classList.contains('is-scroll-hidden'));assert.equal(await page.locator('.pro-tabs').evaluate(n=>n.inert),false);await page.waitForTimeout(400);assert.ok(Math.abs((await page.locator('.actions').boundingBox()).y-raised.y)<1,'Actions return above tabs');
     await page.evaluate(()=>scrollTo(0,0));assert.equal(await page.getByRole('button',{name:'Refresh',exact:true}).count(),0);
+    await page.waitForTimeout(350);await page.getByRole('tab',{name:/^Case/}).click();await page.locator('.pro-record').first().waitFor();
+    await page.locator('.pro-record').first().getByRole('button',{name:'Padam',exact:true}).click();
+    const deletion=page.locator('.pro-editor');const beforeDelete=writes.length;
+    await deletion.getByRole('button',{name:'Teruskan',exact:true}).click();assert.equal(writes.length,beforeDelete);
+    await deletion.getByRole('button',{name:'Tutup',exact:true}).click();assert.equal(await page.locator('.pro-record').count(),5);
+    await page.locator('.pro-record').first().getByRole('button',{name:'Padam',exact:true}).click();await deletion.getByRole('button',{name:'Teruskan',exact:true}).click();failSave=true;
+    await deletion.getByRole('button',{name:'Ya, padam dari paparan',exact:true}).click();await deletion.getByText('Delete failure',{exact:true}).waitFor();assert.equal(await page.locator('.pro-record').count(),5);
+    failSave=false;await deletion.getByRole('button',{name:'Ya, padam dari paparan',exact:true}).click();await deletion.waitFor({state:'detached'});assert.equal(await page.locator('.pro-record').count(),4);assert.equal(writes.at(-1).confirmAgain,true);
     await page.reload();await page.waitForFunction(()=>window.CarLoanBoot.ready);if(await page.locator('#appDialog').isVisible())await page.locator('#dialogClose').click();assert.equal(await page.locator('.workspace').isVisible(),true,'reload defaults to calculator');assert.deepEqual(errors,[]);
     console.log('PASS PRO UI: anonymous calculator default, 5 compact tabs, auth gating, private cases, status list, 3-day follow up, terminal exclusion, safe history, save failure/retry, appointment case link/Malaysia time, comparison and 4 widths.');
   }finally{await browser.close();}
