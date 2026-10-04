@@ -100,7 +100,7 @@
     const d=dialog('Padam '+(appointment?'Appointment':'Case')),info=el('p','',record.name+' · '+record.phone),status=el('p','pro-error');
     d.append(info,el('p','','Rekod akan hilang daripada paparan ejen. Rekod asal kekal dalam database admin.'),status);
     let step=0,busy=false;const confirm=button('Teruskan',async()=>{
-      if(busy)return;if(step===0){step=1;status.textContent='Pengesahan kedua: pasti mahu sembunyikan rekod ini?';confirm.textContent='Ya, padam dari paparan';return;}
+      if(busy)return;if(step===0){step=1;status.textContent='Pengesahan kedua: pasti mahu padamkan rekod ini?';confirm.textContent='Ya, padam dari paparan';return;}
       busy=true;confirm.disabled=true;
       try{await api(appointment?'pro-appointment-delete':'pro-case-delete',{id:record.id,confirm:true,confirmAgain:true});d.close();if(appointment)appointments=appointments.filter(r=>r.id!==record.id);else records=records.filter(r=>r.id!==record.id);render();await refreshCounts();}
       catch(error){status.textContent=error.message;}finally{busy=false;confirm.disabled=false;}
