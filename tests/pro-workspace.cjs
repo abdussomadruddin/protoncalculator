@@ -38,6 +38,7 @@ const root=path.resolve(__dirname,'..');
     const boundaries=await page.evaluate(()=>{
       const row={status:'Submission',activity_at:new Date(Date.now()-3*86400000).toISOString()};return [proWorkspace.isFollowUp(row),proWorkspace.isFollowUp({...row,activity_at:new Date(Date.now()-3*86400000+5000).toISOString()}),...['Rejected','Delivered','Cancelled'].map(status=>proWorkspace.isFollowUp({...row,status}))];
     });assert.deepEqual(boundaries,[true,false,false,false,false]);
+    assert.equal(await page.locator('.pro-pane').getAttribute('data-view'),'followup');await page.waitForTimeout(250);await page.screenshot({path:'/tmp/car-loan-pro-followup-phone.png'});
     await page.getByRole('button',{name:'Sejarah',exact:true}).click();await page.getByText('<script>window.hacked=true</script>',{exact:false}).waitFor();assert.equal(await page.evaluate(()=>Boolean(window.hacked)),false);await page.locator('.pro-editor').getByRole('button',{name:'Tutup',exact:true}).click();
     await page.getByRole('button',{name:'Edit',exact:true}).click();const editor=page.locator('.pro-editor');assert.equal(await editor.locator('input[type=file]').count(),0);const options=await editor.locator('[name=status] option').allTextContents();assert.equal(options.length,11);assert.ok(!options.includes('Waiting ehakmilik'));assert.ok(!options.includes('Grant & roadtax collected'));
     await editor.locator('[name=remark]').fill('Updated remark');await editor.getByRole('button',{name:'Simpan',exact:true}).click();await editor.getByText('Test save failure').waitFor();assert.equal(await editor.locator('[name=remark]').inputValue(),'Updated remark');const first=writes.at(-1).id;failSave=false;await editor.getByRole('button',{name:'Simpan',exact:true}).click();await editor.waitFor({state:'detached'});assert.equal(writes.at(-1).id,first);
@@ -50,13 +51,13 @@ const root=path.resolve(__dirname,'..');
     await page.setViewportSize({width:390,height:844});await appointment.screenshot({path:'/tmp/car-loan-appointment-layout.png'});
     await appointment.getByRole('button',{name:'Simpan',exact:true}).click();await appointment.waitFor({state:'detached'});assert.equal(writes.at(-1).starts_at,'2026-12-01T02:30:00.000Z');
     await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(350);
-    await page.getByRole('tab',{name:/^Comparison/}).click();await page.locator('.comparison-car').first().waitFor();assert.equal(await page.locator('.comparison-car').count(),2);
+    await page.getByRole('tab',{name:/^Comparison/}).click();await page.locator('.comparison-car').first().waitFor();assert.equal(await page.locator('.comparison-car').count(),2);await page.waitForTimeout(250);await page.screenshot({path:'/tmp/car-loan-pro-comparison-phone.png'});
     for(const width of [320,390,768,1280]){
     await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(350);
       await page.setViewportSize({width,height:900});await page.getByRole('tab',{name:/^Case/}).click();await page.locator('.pro-record').first().waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
       const bounds=await page.locator('.pro-tabs').boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width+1);for(const b of await page.locator('.pro-tabs button').all())assert.ok((await b.boundingBox()).height>=44);
     }
-    await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/car-loan-pro-case-phone.png',fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.waitForTimeout(250);await page.screenshot({path:'/tmp/car-loan-pro-case-phone.png',fullPage:true});
     await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(350);
     await page.getByRole('tab',{name:'Calculator',exact:true}).click();await page.screenshot({path:'/tmp/car-loan-pro-calculator-phone.png'});
     const nav=await page.locator('.pro-tabs').boundingBox(),actions=await page.locator('.actions').boundingBox();assert.ok(actions.y+actions.height<=nav.y,'actions and floating tabs must not overlap');

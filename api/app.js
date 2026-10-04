@@ -40,7 +40,7 @@ async function supabase(path, { method = 'GET', body, authToken, service = true,
   if (!response.ok) {
     // Never relay upstream SQL details, credentials, or subscription endpoints.
     if(path==='/auth/v1/admin/users'&&method==='POST'&&['email_exists','user_already_exists'].includes(data?.error_code||data?.code))
-      throw new HttpError(409,'Email ini sudah didaftarkan. Pilih Login dan gunakan password akaun anda.');
+      throw new HttpError(409,'Emel ini sudah pernah berdaftar. Sila login atau daftar semula dengan email berbeza.');
     const invalidLogin = path.startsWith('/auth/v1/token?') && response.status === 400;
     const denied = invalidLogin || response.status === 401 || response.status === 403;
     throw new HttpError(response.status === 429 ? 429 : denied ? 401 : 503, response.status === 429 ? 'Terlalu banyak percubaan. Cuba lagi sebentar.' : denied ? 'Sesi tamat atau login tidak sah.' : 'Backend tidak tersedia. Cuba lagi.');
