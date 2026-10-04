@@ -111,10 +111,12 @@ async function broadcast(id) {
   const payload = JSON.stringify({ id, title: announcement.title, message: announcement.message.slice(0, 500) });
   let sent = 0, failed = 0;
   // Bounded batches avoid function timeouts; durable claims prevent concurrent duplicates.
-  for (let offset = 0; offset < batch.length; offset += 5) {
-    await Promise.all(batch.slice(offset, offset + 5).map(async row => {
+  let next = 0;
+  async function deliver() {
+    while (next < batch.length) {
+      const row = batch[next++];
       let state = 'sent'; let code = null;
-      try { await webpush.sendNotification(row.subscription, payload, { TTL: 86400, timeout: 5000 }); sent++; }
+      try { await webpush.sendNotification(row.subscription, payload, { TTL: 86400, timeout: 5000, urgency: 'high' }); sent++; }
       catch (error) {
         state = 'failed'; code = String(Number(error.statusCode) || 0); failed++;
         if (error.statusCode === 404 || error.statusCode === 410) await supabase('/rest/v1/car_push_subscriptions?id=eq.' + row.subscription_id, { method: 'PATCH', body: { enabled: false } });
@@ -122,8 +124,9 @@ async function broadcast(id) {
       await supabase('/rest/v1/car_push_deliveries?announcement_id=eq.' + id + '&subscription_id=eq.' + row.subscription_id, {
         method: 'PATCH', body: { state, error_code: code, updated_at: new Date().toISOString() },
       });
-    }));
+    }
   }
+  await Promise.all(Array.from({ length: Math.min(10, batch.length) }, deliver));
   const { data: summary } = await supabase('/rest/v1/rpc/car_delivery_summary', { method: 'POST', body: { announcement_id: id } });
   return { ...summary, batchSent: sent, batchFailed: failed, complete: batch.length === 0 };
 }
