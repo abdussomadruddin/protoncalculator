@@ -241,6 +241,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ loggedOut: true });
     }
     const user = await requireAdmin(req, res);
+    if(action==='push-readiness'&&req.method==='GET') {
+      const {data}=await supabase('/rest/v1/rpc/car_push_readiness',{method:'POST',body:{}});
+      return res.status(200).json(data);
+    }
     if(action==='admin-realtime'&&req.method==='GET') return res.status(200).json({url:process.env.SUPABASE_URL,key:process.env.SUPABASE_PUBLISHABLE_KEY,accessToken:user.realtimeToken,subscriptions:[{table:'car_live_signals',filter:'topic=eq.admin'}]});
     if (typeof action === 'string' && action.startsWith('manage-agent-')) return await require('../lib/agents.cjs')(req,res,{supabase,fail,uuid,adminEmail:process.env.ADMIN_EMAIL});
     if (action === 'agent-stats' && req.method === 'GET') {

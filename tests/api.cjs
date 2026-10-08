@@ -28,6 +28,19 @@ test('admin delivery status is read-only, private and includes inactive announce
   assert.deepEqual(res.data.announcements[0].delivery,{sent:1,failed:1,processing:1,total:3,lastUpdated:'2026-10-04T08:00:02Z'});
   assert.ok(calls.every(call=>call.method==='GET'));
 });
+test('silent readiness check requires admin and never sends push', async () => {
+  assert.equal((await request('push-readiness')).code,401);
+  const calls=[];
+  global.fetch=async(url,options)=>{
+    calls.push(url);
+    if(url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({email:process.env.ADMIN_EMAIL,email_confirmed_at:'2026-10-01'}));
+    assert.ok(url.endsWith('/rpc/car_push_readiness'));
+    assert.deepEqual(JSON.parse(options.body),{});
+    return new Response(JSON.stringify({readyAgents:1,readyDevices:2,reviewDevices:0,unavailableDevices:1,devices:[]}));
+  };
+  const res=await request('push-readiness',{cookie:'__Host-carloan-admin=token'});
+  assert.equal(res.code,200);assert.equal(res.data.readyDevices,2);assert.equal(calls.length,2);
+});
 test('public config cannot expose private credentials', async () => {
   const res = await request('config'); assert.equal(res.code, 200); assert.ok(res.data.ready);
   assert.ok(!JSON.stringify(res.data).includes('private-service-key'));

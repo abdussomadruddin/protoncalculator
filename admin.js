@@ -174,5 +174,19 @@
     finally{syncBusy=false;if(syncPending)syncAdmin();}
   },150);}
   const live=window.CarLoanLive(api,syncAdmin,showLogin,'admin-realtime');
+  $('#testNotificationButton').onclick = () => task(async () => {
+    const result = $('#pushReadinessResult'); result.textContent = 'Menyemak rekod...';
+    try {
+      const data = await api('push-readiness'); result.replaceChildren();
+      const summary = document.createElement('p'); summary.className = 'admin-subtitle';
+      summary.textContent = data.readyAgents + ' ejen · ' + data.readyDevices + ' peranti sedia berdasarkan rekod. ' + data.reviewDevices + ' perlu semakan · ' + data.unavailableDevices + ' tidak tersedia. Semakan: ' + new Date(data.checkedAt).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'});
+      result.append(summary);
+      for (const device of data.devices) {
+        const row = document.createElement('p'); row.className = 'admin-subtitle';
+        row.textContent = device.agent + ' · ' + ({ready:'Sedia berdasarkan rekod',review:'Perlu semakan',unavailable:'Tidak tersedia'}[device.state]) + ' · App terakhir: ' + (device.lastSeen ? new Date(device.lastSeen).toLocaleString('ms-MY',{timeZone:'Asia/Kuala_Lumpur'}) : 'Tiada rekod');
+        result.append(row);
+      }
+    } catch(error) { result.textContent = 'Semakan gagal. Cuba semula.'; throw error; }
+  });
   task(initialise);
 })();
